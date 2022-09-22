@@ -1,24 +1,15 @@
 package uk.ac.ed.inf;
 
-import java.net.URL;
-
-public class LngLat {
-    public double lng, lat;
-
-    public LngLat(double lng, double lat) {
-        this.lng = lng;
-        this.lat = lat;
-    }
-
+public record LngLat(double lng, double lat) {
     public boolean inCentralArea() {
-        String baseURL = "https://ilp-rest.azurewebsites.net/";
+        String baseURL = "https://ilp-rest.azurewebsites.net/centralArea";
 
+        // somehow get an array of strings in json format, convert to array of lnglats and check whether falls within boundaries
         return false;
     }
-
     public double distanceTo(LngLat other) {
         return Math.sqrt(((lng - other.lng) * (lng - other.lng)) +
-                         ((lat - other.lat) * (lat - other.lat)));
+                ((lat - other.lat) * (lat - other.lat)));
     }
 
     public boolean closeTo(LngLat other) {
