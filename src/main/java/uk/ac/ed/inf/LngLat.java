@@ -1,10 +1,12 @@
 package uk.ac.ed.inf;
 
 public record LngLat(double lng, double lat) {
+    private static final double DIST_TOLERANCE = 0.00015;
+
     public boolean inCentralArea() {
         String baseURL = "https://ilp-rest.azurewebsites.net/centralArea";
 
-        // somehow get an array of strings in json format, convert to array of lnglats and check whether falls within boundaries
+        // @TODO: somehow get an array of strings in json format, convert to array of lnglats and check whether falls within boundaries
         return false;
     }
     public double distanceTo(LngLat other) {
@@ -13,10 +15,13 @@ public record LngLat(double lng, double lat) {
     }
 
     public boolean closeTo(LngLat other) {
-        return (this.distanceTo(other) < 0.0015);
+        return (this.distanceTo(other) < DIST_TOLERANCE);
     }
 
     public LngLat nextPosition(CompassDirection dir) {
-        return null;
+        double angle = dir.ordinal() * 22.5 * (Math.PI/180);
+        double yChange = Math.sin(angle) * DIST_TOLERANCE;
+        double xChange = Math.cos(angle) * DIST_TOLERANCE;
+        return new LngLat(this.lng + xChange, this.lat + yChange);
     }
 }
