@@ -16,7 +16,7 @@ public record LngLat(double lng, double lat) {
         return (this.distanceTo(other) < 0.0015);
     }
 
-    public LngLat nextPosition() {
+    public LngLat nextPosition(CompassDirection dir) {
         return null;
     }
 }
