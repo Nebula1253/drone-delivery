@@ -1,12 +1,27 @@
 package uk.ac.ed.inf;
 
-public record LngLat(double lng, double lat) {
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+
+@JsonIgnoreProperties("name")
+public record LngLat(
+        @JsonProperty("longitude")
+        double lng,
+        @JsonProperty("latitude")
+        double lat) {
     private static final double DIST_TOLERANCE = 0.00015;
 
-    public boolean inCentralArea() {
-        String baseURL = "https://ilp-rest.azurewebsites.net/centralArea";
+    public boolean inCentralArea() throws IOException {
+        List<LngLat> test = new ObjectMapper().readValue(new URL("https://ilp-rest.azurewebsites.net/centralArea"), new TypeReference<>(){});
 
-        // @TODO: somehow get an array of strings in json format, convert to array of lnglats and check whether falls within boundaries
+        // @TODO: now that you have the coordinates check if the point is inside the polygon
         return false;
     }
     public double distanceTo(LngLat other) {
@@ -19,6 +34,8 @@ public record LngLat(double lng, double lat) {
     }
 
     public LngLat nextPosition(CompassDirection dir) {
+        if (dir == null) { return this; }
+
         double angle = dir.ordinal() * 22.5 * (Math.PI/180);
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
