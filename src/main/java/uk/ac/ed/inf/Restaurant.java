@@ -5,8 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 public class Restaurant {
