@@ -2,12 +2,8 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 
 @JsonIgnoreProperties("name")
@@ -19,10 +15,13 @@ public record LngLat(
     private static final double DIST_TOLERANCE = 0.00015;
 
     public boolean inCentralArea() throws IOException {
-        List<LngLat> test = new ObjectMapper().readValue(new URL("https://ilp-rest.azurewebsites.net/centralArea"), new TypeReference<>(){});
+        List<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
 
-        // @TODO: now that you have the coordinates check if the point is inside the polygon
-        return false;
+        // maybe you'll have to modify this to account for an n-gon?
+        LngLat bottomLeft = areaPoints.get(1);
+        LngLat topRight = areaPoints.get(areaPoints.size() - 1);
+
+        return (this.lat >= bottomLeft.lat && this.lat<= topRight.lat && this.lng >= bottomLeft.lng && this.lng <= topRight.lng);
     }
     public double distanceTo(LngLat other) {
         return Math.sqrt(((lng - other.lng) * (lng - other.lng)) +
@@ -36,7 +35,7 @@ public record LngLat(
     public LngLat nextPosition(CompassDirection dir) {
         if (dir == null) { return this; }
 
-        double angle = dir.ordinal() * 22.5 * (Math.PI/180);
+        double angle = dir.ordinal() * (360f / CompassDirection.values().length) * (Math.PI/180);
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);
