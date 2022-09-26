@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.ArrayList;
 
 @JsonIgnoreProperties("name")
 public record LngLat(
@@ -15,7 +15,7 @@ public record LngLat(
     private static final double DIST_TOLERANCE = 0.00015;
 
     public boolean inCentralArea() throws IOException {
-        List<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
+        ArrayList<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
 
         // maybe you'll have to modify this to account for an n-gon?
         LngLat bottomLeft = areaPoints.get(1);
@@ -35,7 +35,7 @@ public record LngLat(
     public LngLat nextPosition(CompassDirection dir) {
         if (dir == null) { return this; }
 
-        double angle = dir.ordinal() * (360f / CompassDirection.values().length) * (Math.PI/180);
+        double angle = Math.toRadians(dir.ordinal() * (360f / CompassDirection.values().length));
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);

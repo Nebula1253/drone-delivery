@@ -5,12 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
+import java.util.ArrayList;
 
 public final class CentralArea {
     private static CentralArea INSTANCE;
     private static final String BASE_URL = "https://ilp-rest.azurewebsites.net/";
-    private static List<LngLat> points = null;
+    private static ArrayList<LngLat> points = null;
 
     private CentralArea() throws IOException {
         points = new ObjectMapper().readValue(new URL(BASE_URL + "centralArea"), new TypeReference<>(){});
@@ -23,7 +23,7 @@ public final class CentralArea {
         return INSTANCE;
     }
 
-    public List<LngLat> getCentralArea(){
+    public ArrayList<LngLat> getCentralArea(){
         return points;
     }
 }
