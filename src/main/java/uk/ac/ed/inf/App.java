@@ -22,7 +22,7 @@ public class App
 
         System.out.println(forSureInCentralArea.closeTo(new LngLat(-3.190005, 55.9430005)));
 
-        System.out.println(forSureInCentralArea.nextPosition(CompassDirection.SOUTH));
+        System.out.println(forSureInCentralArea.nextPosition(CompassDirection.NORTH));
 
         var x = Restaurant.getRestaurantsFromRestServer(new URL("https://ilp-rest.azurewebsites.net/"));
 
