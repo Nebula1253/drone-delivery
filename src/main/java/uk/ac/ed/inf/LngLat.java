@@ -28,7 +28,9 @@ public record LngLat(
     public boolean inCentralArea() throws IOException {
         ArrayList<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
 
-        // maybe you'll have to modify this to account for an n-gon?
+        System.out.println(areaPoints.get(1));
+
+        // TODO: modify to account for n-sided polygons
         LngLat bottomLeft = areaPoints.get(1);
         LngLat topRight = areaPoints.get(areaPoints.size() - 1);
 

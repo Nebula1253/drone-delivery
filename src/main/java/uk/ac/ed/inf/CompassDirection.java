@@ -1,5 +1,9 @@
 package uk.ac.ed.inf;
 
+/**
+ * Enum values representing the compass directions that the drone is allowed to fly in
+ */
+//TODO: should this just be a part of LngLat?
 public enum CompassDirection {
     EAST,
     EAST_NORTH_EAST,
