@@ -5,11 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 
-//TODO: fix this bullshit to return the correct type
+/**
+ * Utility class used for retrieving data from a provided URL
+ */
 public final class DataRetrieval {
-    public static <T> T retrieveDataFromURL(String url) throws IOException {
-        return (new ObjectMapper()).readValue(new URL(url), new TypeReference<>(){});
+    static final ObjectMapper mapper = new ObjectMapper();
+
+    private DataRetrieval() {}
+
+    // ideally I wouldn't be passing a TypeReference object here since that's Jackson-specific
+    // and the whole point is that this is the one and only function you'd need to change if, suppose,
+    // your method of accessing the data changes, but it simply wasn't working otherwise
+    public static <T> T retrieveDataFromURL(String url, TypeReference<T> typeRef) throws IOException {
+        return mapper.readValue(new URL(url), typeRef);
     }
 }

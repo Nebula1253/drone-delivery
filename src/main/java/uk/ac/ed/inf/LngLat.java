@@ -28,13 +28,14 @@ public record LngLat(
     public boolean inCentralArea() throws IOException {
         ArrayList<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
 
-        System.out.println(areaPoints.get(1));
+        //System.out.println(areaPoints.get(1));
 
         // TODO: modify to account for n-sided polygons
         LngLat bottomLeft = areaPoints.get(1);
         LngLat topRight = areaPoints.get(areaPoints.size() - 1);
 
         return (this.lat >= bottomLeft.lat && this.lat<= topRight.lat && this.lng >= bottomLeft.lng && this.lng <= topRight.lng);
+        //return false;
     }
 
     /**

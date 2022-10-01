@@ -7,15 +7,14 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 
+//TODO: maybe look into structure here
 public final class CentralArea {
     private static CentralArea INSTANCE;
     private static final String BASE_URL = "https://ilp-rest.azurewebsites.net/";
     private static ArrayList<LngLat> points = null;
 
     private CentralArea() throws IOException {
-        //points = DataRetrieval.retrieveDataFromURL(BASE_URL + "centralArea");
-
-        points = (new ObjectMapper()).readValue(new URL(BASE_URL + "centralArea"), new TypeReference<>(){});
+        points = DataRetrieval.retrieveDataFromURL(BASE_URL + "centralArea", new TypeReference<>(){});
     }
 
     public static CentralArea getInstance() throws IOException {
@@ -25,7 +24,7 @@ public final class CentralArea {
         return INSTANCE;
     }
 
-    public ArrayList<LngLat> getCentralArea(){
+    public static ArrayList<LngLat> getCentralArea(){
         return points;
     }
 }

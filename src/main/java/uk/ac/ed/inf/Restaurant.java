@@ -30,9 +30,9 @@ public class Restaurant {
     public Menu[] getMenu() { return menu; }
 
     public static Restaurant[] getRestaurantsFromRestServer(URL serverBaseAddress) throws IOException {
-        //return DataRetrieval.retrieveDataFromURL(serverBaseAddress.getProtocol() + "://" +
-                //serverBaseAddress.getHost() + "/restaurants");
-        return (new ObjectMapper()).readValue(new URL(serverBaseAddress.getProtocol() + "://" +
-                serverBaseAddress.getHost() + "/restaurants"), new TypeReference<>(){});
+        return DataRetrieval.retrieveDataFromURL(serverBaseAddress.getProtocol() + "://" +
+                serverBaseAddress.getHost() + "/restaurants", new TypeReference<Restaurant[]>(){});
+        //return (new ObjectMapper()).readValue(new URL(serverBaseAddress.getProtocol() + "://" +
+                //serverBaseAddress.getHost() + "/restaurants"), new TypeReference<>(){});
     }
 }
