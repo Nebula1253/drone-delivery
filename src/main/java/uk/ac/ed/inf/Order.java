@@ -3,6 +3,7 @@ package uk.ac.ed.inf;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+// Strictly speaking these don't come into use until CW2, but I thought I'd include them here anyway
 /**
  * Represents the information of an order placed with the drone delivery service
  * @param orderNo Unique number assigned to the order
@@ -16,8 +17,8 @@ import java.util.Arrays;
  */
 public record Order(String orderNo, String orderDate, String customer, String creditCardNumber,
                     String creditCardExpiry, String cvv, int priceTotalInPence, ArrayList<String> orderItems) {
-    // constant value representing delivery cost
-    private static final int DELIVERY_COST = 100;
+    // constant value representing delivery fee
+    private static final int DELIVERY_FEE = 100;
 
     /**
      * Determines the cost of having order items delivered by drone, including the 1-pound delivery cost, and checks whether
@@ -31,14 +32,15 @@ public record Order(String orderNo, String orderDate, String customer, String cr
     public int getDeliveryCost(Restaurant[] restaurants, String... itemsOrdered) throws InvalidPizzaCombinationException {
         int itemsRemaining = itemsOrdered.length;
         Menu[] currentMenu;
-        int totalCost = DELIVERY_COST;
+        int totalCost = DELIVERY_FEE;
         boolean restaurantFound = false;
 
         for (Restaurant r : restaurants) {
             currentMenu = r.getMenu();
 
+            // iterate through every single menu item in the current restaurant
             for (Menu m : currentMenu) {
-                //System.out.println(r.name + " " + m.name());
+                // if this item has been ordered, add cost and flag that the restaurant has been found
                 if (Arrays.asList(itemsOrdered).contains(m.name())) {
                     totalCost += m.priceInPence();
                     itemsRemaining--;
@@ -46,8 +48,10 @@ public record Order(String orderNo, String orderDate, String customer, String cr
                 }
             }
 
+            // if you've finished iterating through all the items for this restaurant, and there are still
+            // items unaccounted for on the order, clearly something is wrong
             if (restaurantFound && itemsRemaining != 0) {
-                throw new InvalidPizzaCombinationException("You can't order pizzas from 2 restaurants at once!");
+                throw new InvalidPizzaCombinationException("");
             }
         }
 

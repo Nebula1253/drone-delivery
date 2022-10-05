@@ -1,22 +1,27 @@
 package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 
-//TODO: maybe look into structure here
+/**
+ * Singleton class representing central area coordinates, made immutable once the object has been instantiated
+ */
 public final class CentralArea {
     private static CentralArea INSTANCE;
-    private static final String BASE_URL = "https://ilp-rest.azurewebsites.net/";
-    private static ArrayList<LngLat> points = null;
+    private static String baseURL = "https://ilp-rest.azurewebsites.net/";
+    public ArrayList<LngLat> points;
 
     private CentralArea() throws IOException {
-        points = DataRetrieval.retrieveDataFromURL(BASE_URL + "centralArea", new TypeReference<>(){});
+        points = DataRetrieval.retrieveDataFromURL(baseURL + "centralArea", new TypeReference<>(){});
     }
 
+    /**
+     * Accesses the singleton instance
+     * @return the singleton instance
+     * @throws IOException if there's an error in getting the central area coordinates from the server
+     */
     public static CentralArea getInstance() throws IOException {
         if (INSTANCE == null) {
             INSTANCE = new CentralArea();
@@ -24,7 +29,18 @@ public final class CentralArea {
         return INSTANCE;
     }
 
-    public static ArrayList<LngLat> getCentralArea(){
+    public ArrayList<LngLat> getCentralArea(){
         return points;
+    }
+
+    // presumably the mechanism by which the URL can be changed in CW2, but this will probably have to be changed
+    // only really included it because the spec mentioned it
+
+    /**
+     * Changes the base server URL to a new value, if required
+     * @param newURL the URL to be changed to
+     */
+    public static void setURL(String newURL) {
+        baseURL = newURL;
     }
 }

@@ -16,7 +16,8 @@ public final class DataRetrieval {
 
     // ideally I wouldn't be passing a TypeReference object here since that's Jackson-specific
     // and the whole point is that this is the one and only function you'd need to change if, suppose,
-    // your method of accessing the data changes, but it simply wasn't working otherwise
+    // your method of accessing the data changes... however, it screwed up the type of the object returned
+    // if I created a new TypeReference object inside the function (for some strange reason)
     public static <T> T retrieveDataFromURL(String url, TypeReference<T> typeRef) throws IOException {
         return mapper.readValue(new URL(url), typeRef);
     }
