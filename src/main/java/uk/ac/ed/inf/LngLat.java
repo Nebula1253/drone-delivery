@@ -2,9 +2,11 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Represents a location in the world, with longitude and latitude coordinates
@@ -27,13 +29,10 @@ public record LngLat(
      * @throws IOException if the data retrieval fails
      */
     public boolean inCentralArea() throws IOException {
-        ArrayList<LngLat> areaPoints = CentralArea.getInstance().getCentralArea();
+        ArrayList<LngLat> areaPoints = DataRetrieval.retrieveDataFromURL("centralArea", new TypeReference<>(){});
 
-        // TODO: modify to account for n-sided polygons
-//        LngLat bottomLeft = areaPoints.get(1);
-//        LngLat topRight = areaPoints.get(areaPoints.size() - 1);
-//
-//        return (this.lat >= bottomLeft.lat && this.lat<= topRight.lat && this.lng >= bottomLeft.lng && this.lng <= topRight.lng);
+        // STRICTLY FOR TESTING NON-RECTANGULAR CENTRAL AREAS
+        areaPoints = changeAreaPoints();
 
         // Using the ray-casting method to check whether the point is inside the central area polygon i.e.
         // if a line from the point to the right toward infinity intersects the polygon edges an odd number of times or not
@@ -59,6 +58,7 @@ public record LngLat(
                 if (((this.lat > areaPoints.get(i).lat) != (this.lat > areaPoints.get(j).lat)) &&
                         this.lng < areaPoints.get(i).lng) {
                     odd = !odd;
+                    System.out.println(areaPoints.get(j).toString() + areaPoints.get(i) + "intersect!");
                 }
             }
             else {
@@ -69,9 +69,13 @@ public record LngLat(
                 double xCoord = (this.lat - yIntercept) / gradient;
 
                 // if the point of intersection is in fact to the *right* of the current point (i.e. the edge is to the right),
+                // and the y-coordinate of the point of intersection lies between the two points we have
+                // (this needs to be checked because a line as described by an equation extends to infinity)
                 // count the intersection
-                if (xCoord > this.lng) {
+
+                if (xCoord > this.lng && (this.lat >= areaPoints.get(i).lat) != (this.lat >= areaPoints.get(j).lat)) {
                     odd = !odd;
+                    System.out.println(areaPoints.get(j).toString() + areaPoints.get(i) + "intersect!");
                 }
             }
             j = i;
@@ -111,5 +115,13 @@ public record LngLat(
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);
+    }
+
+    // STRICTLY FOR TESTING PURPOSES
+    private ArrayList<LngLat> changeAreaPoints() {
+        ArrayList<LngLat> points = new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
+                new LngLat(1, -5), new LngLat(1, -4), new LngLat(2, -4), new LngLat(3, -3),
+                new LngLat(1,1)));
+        return points;
     }
 }

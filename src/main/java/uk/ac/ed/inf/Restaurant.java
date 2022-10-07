@@ -2,7 +2,6 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URL;
@@ -41,8 +40,8 @@ public class Restaurant {
      * @throws IOException if the URL is incorrect
      */
     public static Restaurant[] getRestaurantsFromRestServer(URL serverBaseAddress) throws IOException {
-        // since the parameter is not a string I needed to retrieve it somehow, to append "/restaurants" at the end
-        return DataRetrieval.retrieveDataFromURL(serverBaseAddress.getProtocol() + "://" +
-                serverBaseAddress.getHost() + "/restaurants", new TypeReference<Restaurant[]>(){});
+        DataRetrieval.setBaseURL(String.valueOf(serverBaseAddress));
+
+        return DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<Restaurant[]>(){});
     }
 }

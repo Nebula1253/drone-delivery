@@ -16,11 +16,13 @@ public class App
         System.out.println(forSureInCentralArea);
         System.out.println(forSureInCentralArea.inCentralArea());
 
-        // lmao
-        LngLat noFuckingWayItsInThere = new LngLat(420, 69);
-        System.out.println(noFuckingWayItsInThere.inCentralArea());
+        LngLat noWayItsInThere = new LngLat(420, 69);
+        System.out.println(noWayItsInThere.inCentralArea());
 
-        System.out.println(noFuckingWayItsInThere.distanceTo(forSureInCentralArea));
+        LngLat absoluteBoundaryCase = new LngLat(-3.192473,55.946233);
+        System.out.println(absoluteBoundaryCase.inCentralArea());
+
+        System.out.println(noWayItsInThere.distanceTo(forSureInCentralArea));
 
         System.out.println(forSureInCentralArea.closeTo(new LngLat(-3.190005, 55.9430005)));
 
@@ -38,5 +40,15 @@ public class App
                 "576", 0, new ArrayList<>());
 
         System.out.println(order.getDeliveryCost(x, "Vegan Delight", "Meat Lover"));
+
+        // ONLY MAKES SENSE WITH NEW TESTING POLYGON IN LNGLAT
+        LngLat b = new LngLat(1, -2);
+        System.out.println(b.inCentralArea());
+
+        LngLat c = new LngLat(-1, -4);
+        System.out.println(c.inCentralArea());
+
+        LngLat d = new LngLat(1, -4);
+        System.out.println(d.inCentralArea());
     }
 }
