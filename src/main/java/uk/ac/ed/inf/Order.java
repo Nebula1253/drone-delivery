@@ -30,6 +30,8 @@ public record Order(String orderNo, String orderDate, String customer, String cr
      * or if some items don't actually exist
      */
     public int getDeliveryCost(Restaurant[] restaurants, String... itemsOrdered) throws InvalidPizzaCombinationException {
+        // you could just add the delivery fee to the priceTotalInPence field, but that could be inconsistent with the actual listed costs,
+        // and since you're iterating through the menu items anyway, may as well add it up that way
         int itemsRemaining = itemsOrdered.length;
         Menu[] currentMenu;
         int totalCost = DELIVERY_FEE;

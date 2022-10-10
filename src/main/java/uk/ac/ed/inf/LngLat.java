@@ -32,53 +32,29 @@ public record LngLat(
         ArrayList<LngLat> areaPoints = DataRetrieval.retrieveDataFromURL("centralArea", new TypeReference<>(){});
 
         // STRICTLY FOR TESTING NON-RECTANGULAR CENTRAL AREAS
-        areaPoints = changeAreaPoints();
+        //areaPoints = changeAreaPoints();
 
         // Using the ray-casting method to check whether the point is inside the central area polygon i.e.
         // if a line from the point to the right toward infinity intersects the polygon edges an odd number of times or not
         // (odd means it's inside the polygon)
 
         boolean odd = false;
-        int j = areaPoints.size() - 1;
+        LngLat prevPt = areaPoints.get(areaPoints.size() - 1);
 
-        // For each edge (in this case, between the current point of the polygon and the previous one), starting with the edge
-        // between the last and the first node
-        for (int i = 0; i < areaPoints.size(); i++) {
-            // Check if a line from the point into infinity crosses the current edge
-            double gradient = (areaPoints.get(i).lat - areaPoints.get(j).lat) / (areaPoints.get(i).lng - areaPoints.get(j).lng);
-
-            // if line is horizontal you're not getting an intersection anyway
-            if (gradient == 0) {
-                j = i;
-                continue;
+        for (LngLat currPt: areaPoints) {
+            // if line intersects this edge, invert "odd"
+            if ((currPt.lat > this.lat) != (prevPt.lat > this.lat) &&
+                    (this.lng < (prevPt.lng - currPt.lng) * (this.lat - currPt.lat) /
+                            (prevPt.lat - currPt.lat) + currPt.lng)) {
+                //System.out.println(prevPt + ", " + currPt);
+                odd = !odd;
             }
-            // if line is vertical, just check if the y coordinate lies in between the two line endpoints,
-            // and if the x-coordinate is to the right
-            else if (Double.isInfinite(gradient)) {
-                if (((this.lat > areaPoints.get(i).lat) != (this.lat > areaPoints.get(j).lat)) &&
-                        this.lng < areaPoints.get(i).lng) {
-                    odd = !odd;
-                    System.out.println(areaPoints.get(j).toString() + areaPoints.get(i) + "intersect!");
-                }
+
+            // if the point is already on the edge, return true
+            if (this.distanceTo(currPt) + this.distanceTo(prevPt) == currPt.distanceTo(prevPt)) {
+                return true;
             }
-            else {
-                double yIntercept = areaPoints.get(i).lat - (areaPoints.get(i).lng * gradient);
-
-                // get x-coordinate of point of intersection between current edge and line from current point to infinity
-                // which will obviously have equation (y = y-coordinate of current point)
-                double xCoord = (this.lat - yIntercept) / gradient;
-
-                // if the point of intersection is in fact to the *right* of the current point (i.e. the edge is to the right),
-                // and the y-coordinate of the point of intersection lies between the two points we have
-                // (this needs to be checked because a line as described by an equation extends to infinity)
-                // count the intersection
-
-                if (xCoord > this.lng && (this.lat >= areaPoints.get(i).lat) != (this.lat >= areaPoints.get(j).lat)) {
-                    odd = !odd;
-                    System.out.println(areaPoints.get(j).toString() + areaPoints.get(i) + "intersect!");
-                }
-            }
-            j = i;
+            prevPt = currPt;
         }
 
         return odd;
@@ -118,10 +94,18 @@ public record LngLat(
     }
 
     // STRICTLY FOR TESTING PURPOSES
+    // terrible way of getting to test non-rectangular central area definitions
     private ArrayList<LngLat> changeAreaPoints() {
-        ArrayList<LngLat> points = new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
+        ArrayList<LngLat> points =
+                // testing polygon 1
+                /*new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
                 new LngLat(1, -5), new LngLat(1, -4), new LngLat(2, -4), new LngLat(3, -3),
-                new LngLat(1,1)));
+                new LngLat(1,1)));*/
+
+                // testing polygon 2
+                new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(-2,-2),
+                        new LngLat(-1,-2), new LngLat(0,-1), new LngLat(1, -2),
+                        new LngLat(2,-2)));
         return points;
     }
 }
