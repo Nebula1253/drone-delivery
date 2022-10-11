@@ -43,9 +43,10 @@ public record LngLat(
 
         for (LngLat currPt: areaPoints) {
             // if line intersects this edge, invert "odd"
-            if ((currPt.lat > this.lat) != (prevPt.lat > this.lat) &&
+            if ((currPt.lat > this.lat) != (prevPt.lat > this.lat) && // the y-coordinate of this point lies between the y-coordinates of the edge points
                     (this.lng < (prevPt.lng - currPt.lng) * (this.lat - currPt.lat) /
-                            (prevPt.lat - currPt.lat) + currPt.lng)) {
+                            (prevPt.lat - currPt.lat) + currPt.lng)) { // the x-coordinate of the intersection point is to the right of this point
+                // for debugging
                 //System.out.println(prevPt + ", " + currPt);
                 odd = !odd;
             }
@@ -87,7 +88,10 @@ public record LngLat(
     public LngLat nextPosition(CompassDirection dir) {
         if (dir == null) { return this; }
 
+        // the enum values have been specifically arranged in an anti-clockwise manner so that the radian value can be calculated
         double angle = Math.toRadians(dir.ordinal() * (360f / CompassDirection.values().length));
+
+        // here "x" is longitude and "y" is latitude
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);
@@ -96,16 +100,14 @@ public record LngLat(
     // STRICTLY FOR TESTING PURPOSES
     // terrible way of getting to test non-rectangular central area definitions
     private ArrayList<LngLat> changeAreaPoints() {
-        ArrayList<LngLat> points =
-                // testing polygon 1
-                /*new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
-                new LngLat(1, -5), new LngLat(1, -4), new LngLat(2, -4), new LngLat(3, -3),
-                new LngLat(1,1)));*/
+        // testing polygon 1
+//        return new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
+//                new LngLat(1, -5), new LngLat(1, -4), new LngLat(2, -4), new LngLat(3, -3),
+//                new LngLat(1,1)));
 
-                // testing polygon 2
-                new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(-2,-2),
-                        new LngLat(-1,-2), new LngLat(0,-1), new LngLat(1, -2),
-                        new LngLat(2,-2)));
-        return points;
+        // testing polygon 2 (specifically for if the line passes straight through a vertex)
+        return new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(-2,-2),
+                new LngLat(-1,-2), new LngLat(0,-1), new LngLat(1, -2),
+                new LngLat(2,-2)));
     }
 }

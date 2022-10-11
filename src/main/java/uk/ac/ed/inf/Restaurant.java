@@ -12,7 +12,6 @@ import java.net.URL;
 // in theory this could also be a record, but the spec mentioned a getMenu method specifically, so I just
 // went for the normal class structure
 public class Restaurant {
-    //TODO: should these be private???
     @JsonProperty("name")
     private String name;
 
@@ -42,6 +41,6 @@ public class Restaurant {
     public static Restaurant[] getRestaurantsFromRestServer(URL serverBaseAddress) throws IOException {
         DataRetrieval.setBaseURL(String.valueOf(serverBaseAddress));
 
-        return DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<Restaurant[]>(){});
+        return DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<>(){});
     }
 }
