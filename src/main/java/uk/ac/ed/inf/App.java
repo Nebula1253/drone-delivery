@@ -11,7 +11,7 @@ import java.util.Arrays;
 public class App 
 {
     public static void main( String[] args ) throws IOException, InvalidPizzaCombinationException {
-        // testing central area fetching from endpoint, lnglat names are self explanatory
+        // testing central area fetching from endpoint, lnglat names are self-explanatory
         LngLat forSureInCentralArea = new LngLat(-3.19, 55.943);
         System.out.println(forSureInCentralArea);
         System.out.println(forSureInCentralArea.inCentralArea());
@@ -31,6 +31,21 @@ public class App
         System.out.println(forSureInCentralArea.nextPosition(CompassDirection.NORTH));
         // pretty much just manually checking coordinates here
 
+        var q = forSureInCentralArea.nextPosition(CompassDirection.NORTH).nextPosition(CompassDirection.EAST).
+                nextPosition(CompassDirection.SOUTH).nextPosition(CompassDirection.WEST);
+        var w = forSureInCentralArea.nextPosition(CompassDirection.NORTH_EAST).nextPosition(CompassDirection.SOUTH_EAST).
+                nextPosition(CompassDirection.SOUTH_WEST).nextPosition(CompassDirection.NORTH_WEST);
+        var t = forSureInCentralArea.nextPosition(CompassDirection.EAST_NORTH_EAST).nextPosition(CompassDirection.SOUTH_SOUTH_EAST).
+                nextPosition(CompassDirection.WEST_SOUTH_WEST).nextPosition(CompassDirection.NORTH_NORTH_WEST);
+        var y = forSureInCentralArea.nextPosition(CompassDirection.NORTH_NORTH_EAST).nextPosition(CompassDirection.EAST_SOUTH_EAST).
+                nextPosition(CompassDirection.SOUTH_SOUTH_WEST).nextPosition(CompassDirection.WEST_NORTH_WEST);
+
+        System.out.println(forSureInCentralArea.equals(q));
+        System.out.println(forSureInCentralArea.equals(w));
+        System.out.println(forSureInCentralArea.equals(t));
+        System.out.println(forSureInCentralArea.equals(y));
+        // expected true in all cases, because the drone should be returning to exactly where it started
+
         // testing whether it correctly returns 4 restaurants
         var x = Restaurant.getRestaurantsFromRestServer(new URL("https://ilp-rest.azurewebsites.net/"));
         System.out.println(Arrays.toString(x));
@@ -47,7 +62,7 @@ public class App
         System.out.println(order.getDeliveryCost(x, "Vegan Delight", "Meat Lover"));
 
         // specifically for testing non-rectangular polygon cases
-        // ONLY MAKES SENSE WITH 1ST NEW TESTING POLYGON IN LNGLAT
+        // ONLY WORKS ONCE CHANGEAREAPOINTS METHOD IS USED IN LNGLAT (POLYGON 1)
         LngLat b = new LngLat(1, -2);
         System.out.println(b.inCentralArea());
         //expected true
@@ -60,7 +75,7 @@ public class App
         System.out.println(d.inCentralArea());
         //one of the boundary points, so expected true
 
-        // ONLY MAKES SENSE WITH 2ND NEW TESTING POLYGON IN LNGLAT
+        // ONLY WORKS ONCE CHANGEAREAPOINTS METHOD IS USED IN LNGLAT (POLYGON 2)
         LngLat e = new LngLat(-1, -1);
         System.out.println(e.inCentralArea());
         // expected true
