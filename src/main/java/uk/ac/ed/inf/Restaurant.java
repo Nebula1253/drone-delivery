@@ -10,7 +10,7 @@ import java.net.URL;
  * Represents a participating restaurant in the drone delivery service
  */
 // in theory this could also be a record, but the spec mentioned a getMenu method specifically, so I just
-// went for the normal class structure
+// went for the normal class structure, and now I'm afraid to change it in case I break something
 public class Restaurant {
     @JsonProperty("name")
     private String name;
@@ -24,7 +24,17 @@ public class Restaurant {
     @JsonProperty("menu")
     private Menu[] menu;
 
-    public Restaurant() {
+    /**
+     * @param name The name of the restaurant
+     * @param longitude The longitude coordinate of the restaurant
+     * @param latitude The latitude coordinate of the restaurants
+     * @param menu List of menu items offered by the restaurant
+     */
+    public Restaurant(String name, double longitude, double latitude, Menu[] menu) {
+        this.name = name;
+        this.longitude = longitude;
+        this.latitude = latitude;
+        this.menu = menu;
     }
 
     /**
