@@ -19,6 +19,8 @@ public record Order(String orderNo, String orderDate, String customer, String cr
                     String creditCardExpiry, String cvv, int priceTotalInPence, ArrayList<String> orderItems) {
     // constant value representing delivery fee
     private static final int DELIVERY_FEE = 100;
+    // TODO: this can't be static, maybe convert order to a class?
+    private static OrderOutcome outcome;
 
     /**
      * Determines the cost of having order items delivered by drone, including the 1-pound delivery cost, and checks whether
@@ -58,5 +60,10 @@ public record Order(String orderNo, String orderDate, String customer, String cr
         }
 
         return totalCost;
+    }
+
+    // intended to assign the order outcome thing
+    private void validation() {
+
     }
 }
