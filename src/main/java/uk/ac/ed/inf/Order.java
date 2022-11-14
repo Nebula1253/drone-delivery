@@ -61,9 +61,4 @@ public record Order(String orderNo, String orderDate, String customer, String cr
 
         return totalCost;
     }
-
-    // intended to assign the order outcome thing
-    private void validation() {
-
-    }
 }
