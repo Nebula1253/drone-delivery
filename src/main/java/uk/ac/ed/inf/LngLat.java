@@ -106,8 +106,8 @@ public record LngLat(
 //                new LngLat(1,1)));
 
         // testing polygon 2 (specifically for if the line passes straight through a vertex)
-        return new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(-2,-2),
-                new LngLat(-1,-2), new LngLat(0,-1), new LngLat(1, -2),
-                new LngLat(2,-2)));
+        return new ArrayList<>(Arrays.asList(new LngLat(0, 0), new LngLat(-2, -2),
+                new LngLat(-1, -2), new LngLat(0, -1), new LngLat(1, -2),
+                new LngLat(2, -2)));
     }
 }

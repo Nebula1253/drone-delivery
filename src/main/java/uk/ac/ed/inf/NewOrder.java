@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 
 public class NewOrder {
@@ -38,7 +39,9 @@ public class NewOrder {
     private void validateExpiryDate() {
         // Expiry date is invalid if: a) it's in the past, b) it's not in the "mm/yy" pattern
         try {
-            LocalDate expiryDate = LocalDate.parse(this.creditCardExpiry, DateTimeFormatter.ofPattern("MM/yy"));
+            // the expiry date always refers to the very last day of the month, so the object is adjusted accordingly
+            LocalDate expiryDate = LocalDate.parse(this.creditCardExpiry, DateTimeFormatter.ofPattern("MM/yy"))
+                    .with(TemporalAdjusters.lastDayOfMonth());
             if (expiryDate.isBefore(LocalDate.now())) {
                 this.outcome = OrderOutcome.InvalidExpiryDate;
             }
@@ -90,9 +93,12 @@ public class NewOrder {
     private void validateCreditCardNumber(){
         String[] creditCardDigits = this.creditCardNumber.split("");
 
-        if (this.creditCardNumber.matches("[0-9]+")) {
+        if (this.creditCardNumber.matches("[0-9]+")) { // contains no non-numeric characters, so that the parseint never fails
             int firstTwoDigits = Integer.parseInt(creditCardDigits[0] + creditCardDigits[1]);
-            if (this.creditCardNumber.length() == 16 && (creditCardDigits[0].equals("4") || (firstTwoDigits >= 51 && firstTwoDigits <= 55))) {
+            if (this.creditCardNumber.length() == 16 && // Standard credit card number length
+                    (creditCardDigits[0].equals("4") || // Visa prefix
+                            (firstTwoDigits >= 51 && firstTwoDigits <= 55))) // Mastercard prefix
+            {
                 // credit card validation: Luhn's algorithm
                 int sumOfDoubledDigits = 0, sumOfRemainingDigits = 0;
                 for (int i = creditCardDigits.length - 1; i >= 0; i--) {
