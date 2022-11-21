@@ -1,9 +1,25 @@
 package uk.ac.ed.inf;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.beans.ConstructorProperties;
 import java.util.ArrayList;
 
+@JsonIgnoreProperties("name")
 public class Area {
-    private ArrayList<LngLat> cornerPoints;
+    private final ArrayList<LngLat> cornerPoints;
+
+    public Area(ArrayList<LngLat> cornerPoints) {
+        this.cornerPoints = cornerPoints;
+    }
+
+    @ConstructorProperties("coordinates")
+    public Area(double[][] coordinates) {
+        this.cornerPoints = new ArrayList<>();
+        for (double[] i : coordinates) {
+            cornerPoints.add(new LngLat(i[0], i[1]));
+        }
+    }
 
     public boolean pointInArea(LngLat point) {
         boolean odd = false;
@@ -25,5 +41,9 @@ public class Area {
         }
 
         return odd;
+    }
+
+    public ArrayList<LngLat> getCornerPoints() {
+        return cornerPoints;
     }
 }

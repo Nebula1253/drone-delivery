@@ -12,16 +12,8 @@ import java.net.URL;
 // in theory this could also be a record, but the spec mentioned a getMenu method specifically, so I just
 // went for the normal class structure, and now I'm afraid to change it in case I break something
 public class Restaurant {
-    @JsonProperty("name")
     private String name;
-
-    @JsonProperty("longitude")
-    private double longitude;
-
-    @JsonProperty("latitude")
-    private double latitude;
-
-    @JsonProperty("menu")
+    private LngLat location;
     private Menu[] menu;
 
     /**
@@ -30,10 +22,10 @@ public class Restaurant {
      * @param latitude The latitude coordinate of the restaurants
      * @param menu List of menu items offered by the restaurant
      */
-    public Restaurant(String name, double longitude, double latitude, Menu[] menu) {
+    public Restaurant(@JsonProperty("name") String name, @JsonProperty("longitude") double longitude,
+                      @JsonProperty("latitude") double latitude, @JsonProperty("menu") Menu[] menu) {
         this.name = name;
-        this.longitude = longitude;
-        this.latitude = latitude;
+        this.location = new LngLat(longitude, latitude);
         this.menu = menu;
     }
 
