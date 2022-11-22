@@ -1,7 +1,8 @@
 package uk.ac.ed.inf;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import java.io.IOException;
-import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
@@ -12,6 +13,7 @@ public class Order {
     private int priceTotalInPence;
     private ArrayList<String> orderItems;
     private OrderOutcome outcome = OrderOutcome.ValidButNotDelivered;
+    private LngLat deliveryLocation;
 
     // constant value representing delivery fee
     private static final int DELIVERY_FEE = 100;
@@ -74,7 +76,11 @@ public class Order {
         int totalCost = 0;
         boolean restaurantFound = false;
 
-        for (Restaurant r : Restaurant.getRestaurantsFromRestServer(new URL("https://ilp-rest.azurewebsites.net/"))) {
+        // maybe this should be changed? if you're intending to have a reference to a restaurant stored within the order,
+        // then maybe you shouldn't read into a local array? if you have the restaurant stored elsewhere then they wouldn't be the
+        // same object internally
+        Restaurant[] allRestaurants = DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<>(){});
+        for (Restaurant r : allRestaurants) {
             currentMenu = r.getMenu();
 
             // iterate through every single menu item in the current restaurant
@@ -84,13 +90,20 @@ public class Order {
                     totalCost += m.priceInPence();
                     itemsRemaining--;
                     restaurantFound = true;
+                    // set restaurant reference????
                 }
             }
 
-            // if you've finished iterating through all the items for this restaurant, found a match for one or more items in the order,
-            // and there are still items unaccounted for on the order, clearly something is wrong
-            if (restaurantFound && itemsRemaining != 0) {
-                this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
+            if (restaurantFound) {
+                // if you've finished iterating through all the items for this restaurant, found a match for one or more items in the order,
+                // and there are still items unaccounted for on the order, clearly something is wrong
+                if (itemsRemaining != 0) {
+                    this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
+                }
+                // if the restaurant was found and all the menu items were accounted for, set the delivery location
+                else {
+                    this.deliveryLocation = new LngLat(r.getLongitude(), r.getLatitude());
+                }
             }
         }
         // if you've gone through ALL the menu items of all the participating restaurants, and there are still remaining items,
@@ -142,5 +155,9 @@ public class Order {
             return this.priceTotalInPence + DELIVERY_FEE;
         }
         return -1;
+    }
+
+    public LngLat getDeliveryLocation() {
+        return deliveryLocation;
     }
 }

@@ -1,10 +1,6 @@
 package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-import java.io.IOException;
-import java.net.URL;
 
 /**
  * Represents a participating restaurant in the drone delivery service
@@ -13,7 +9,7 @@ import java.net.URL;
 // went for the normal class structure, and now I'm afraid to change it in case I break something
 public class Restaurant {
     private String name;
-    private LngLat location;
+    private double longitude, latitude;
     private Menu[] menu;
 
     /**
@@ -25,7 +21,8 @@ public class Restaurant {
     public Restaurant(@JsonProperty("name") String name, @JsonProperty("longitude") double longitude,
                       @JsonProperty("latitude") double latitude, @JsonProperty("menu") Menu[] menu) {
         this.name = name;
-        this.location = new LngLat(longitude, latitude);
+        this.longitude = longitude;
+        this.latitude = latitude;
         this.menu = menu;
     }
 
@@ -34,15 +31,23 @@ public class Restaurant {
      */
     public Menu[] getMenu() { return menu; }
 
-    /**
-     * Retrieves a list of restaurants from the REST server URL provided
-     * @param serverBaseAddress URL of the REST server
-     * @return Current list of restaurants
-     * @throws IOException if the URL is incorrect
-     */
-    public static Restaurant[] getRestaurantsFromRestServer(URL serverBaseAddress) throws IOException {
-        DataRetrieval.setBaseURL(String.valueOf(serverBaseAddress));
-
-        return DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<>(){});
+    public double getLatitude() {
+        return latitude;
     }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    //    /**
+//     * Retrieves a list of restaurants from the REST server URL provided
+//     * @param serverBaseAddress URL of the REST server
+//     * @return Current list of restaurants
+//     * @throws IOException if the URL is incorrect
+//     */
+//    public static Restaurant[] getRestaurantsFromRestServer(URL serverBaseAddress) throws IOException {
+//        DataRetrieval.setBaseURL(String.valueOf(serverBaseAddress));
+//
+//        return DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<>(){});
+//    }
 }
