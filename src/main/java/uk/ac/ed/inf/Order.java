@@ -1,8 +1,9 @@
 package uk.ac.ed.inf;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
@@ -11,11 +12,15 @@ import java.util.ArrayList;
 public class Order {
     private String orderNo, orderDate, customer, creditCardNumber, creditCardExpiry, cvv;
     private int priceTotalInPence;
+
     private ArrayList<String> orderItems;
+
     private OrderOutcome outcome = OrderOutcome.ValidButNotDelivered;
+    @JsonIgnore
     private LngLat deliveryLocation;
 
     // constant value representing delivery fee
+    @JsonIgnore
     private static final int DELIVERY_FEE = 100;
 
     /**
@@ -29,8 +34,10 @@ public class Order {
      * @param priceTotalInPence Total price of the menu items, given in pence
      * @param orderItems Names of menu items ordered
      */
-    public Order(String orderNo, String orderDate, String customer, String creditCardNumber, String creditCardExpiry,
-                 String cvv, int priceTotalInPence, ArrayList<String> orderItems) throws IOException {
+    public Order(@JsonProperty("orderNo") String orderNo,  @JsonProperty("orderDate") String orderDate,
+                 @JsonProperty("customer") String customer,  @JsonProperty("creditCardNumber") String creditCardNumber,
+                 @JsonProperty("creditCardExpiry") String creditCardExpiry,  @JsonProperty("cvv") String cvv,
+                 @JsonProperty("priceTotalInPence") int priceTotalInPence,  @JsonProperty("orderItems") ArrayList<String> orderItems) {
         this.orderNo = orderNo;
         this.orderDate = orderDate;
         this.customer = customer;
@@ -43,7 +50,7 @@ public class Order {
         validate();
     }
 
-    private void validate() throws IOException {
+    private void validate() {
         validateExpiryDate();
         validateCVV();
         validateOrderItems();
@@ -54,8 +61,9 @@ public class Order {
         // Expiry date is invalid if: a) it's in the past, b) it's not in the "mm/yy" pattern
         try {
             // the expiry date always refers to the very last day of the month, so the object is adjusted accordingly
-            LocalDate expiryDate = LocalDate.parse(this.creditCardExpiry, DateTimeFormatter.ofPattern("MM/yy"))
+            LocalDate expiryDate = LocalDate.parse("01/" + this.creditCardExpiry, DateTimeFormatter.ofPattern("dd/MM/yy"))
                     .with(TemporalAdjusters.lastDayOfMonth());
+            //System.out.println(expiryDate + " " + LocalDate.now());
             if (expiryDate.isBefore(LocalDate.now())) {
                 this.outcome = OrderOutcome.InvalidExpiryDate;
             }
@@ -69,17 +77,17 @@ public class Order {
     }
 
     //TODO: there is probably a better way to do this
-    private void validateOrderItems() throws IOException {
+    private void validateOrderItems() {
         int itemsRemaining = this.orderItems.size();
         if (itemsRemaining > 4) { this.outcome = OrderOutcome.InvalidPizzaCount; }
         Menu[] currentMenu;
-        int totalCost = 0;
+        int totalCost = 100;
         boolean restaurantFound = false;
 
         // maybe this should be changed? if you're intending to have a reference to a restaurant stored within the order,
         // then maybe you shouldn't read into a local array? if you have the restaurant stored elsewhere then they wouldn't be the
         // same object internally
-        Restaurant[] allRestaurants = DataRetrieval.retrieveDataFromURL("restaurants", new TypeReference<>(){});
+        Restaurant[] allRestaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
         for (Restaurant r : allRestaurants) {
             currentMenu = r.getMenu();
 
@@ -112,7 +120,10 @@ public class Order {
 
         // we've manually totalled up the price for all the items, including the delivery fee, so if this is inconsistent
         // with the provided order total, we need to set the outcome accordingly
-        if (totalCost != this.priceTotalInPence) { this.outcome = OrderOutcome.InvalidTotal; }
+        if (totalCost != this.priceTotalInPence) {
+            System.out.println(totalCost + " " + priceTotalInPence);
+            this.outcome = OrderOutcome.InvalidTotal;
+        }
     }
 
     private void validateCreditCardNumber(){
@@ -151,10 +162,35 @@ public class Order {
      * Determines the cost of having order items delivered by drone, including the 1-pound delivery cost
      */
     public int getDeliveryCost() {
-        if (this.outcome != OrderOutcome.InvalidTotal) {
-            return this.priceTotalInPence + DELIVERY_FEE;
-        }
-        return -1;
+        return this.priceTotalInPence + DELIVERY_FEE;
+    }
+
+    public OrderOutcome getOutcome() {
+        return outcome;
+    }
+
+    public String getCreditCardExpiry() {
+        return creditCardExpiry;
+    }
+
+    public String getCreditCardNumber() {
+        return creditCardNumber;
+    }
+
+    public String getOrderNo() {
+        return orderNo;
+    }
+
+    public String getOrderDate() {
+        return orderDate;
+    }
+
+    public String getCustomer() {
+        return customer;
+    }
+
+    public String getCvv() {
+        return cvv;
     }
 
     public LngLat getDeliveryLocation() {

@@ -26,10 +26,9 @@ public record LngLat(
      * Checks whether this location is within the central area of the University campus, based on coordinates retrieved
      * from a REST server
      * @return A boolean value showing whether the point is within the central area
-     * @throws IOException if the data retrieval fails
      */
-    public boolean inCentralArea() throws IOException {
-        ArrayList<LngLat> areaPoints = DataRetrieval.retrieveDataFromURL("centralArea", new TypeReference<>(){});
+    public boolean inCentralArea() {
+        ArrayList<LngLat> areaPoints = DataManager.retrieveDataFromURL("centralArea", new TypeReference<>(){});
 
         // STRICTLY FOR TESTING NON-RECTANGULAR CENTRAL AREAS
         //areaPoints = changeAreaPoints();

@@ -1,7 +1,9 @@
 package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -10,23 +12,19 @@ import java.util.ArrayList;
  */
 public class App 
 {
-    private static Area centralArea;
-    private static Area[] noFlyZones;
+    private static final Area centralArea = new Area(DataManager.retrieveDataFromURL("centralArea", new TypeReference<ArrayList<LngLat>>(){}));
+    private static final Area[] noFlyZones = DataManager.retrieveDataFromURL("noFlyZones", new TypeReference<>(){});
     private static Order[] orders;
     private static Drone drone;
-    private String[] dates;
 
-    public App() throws IOException {
-
-
-    }
-
-    public static void main( String[] args ) throws IOException{
+    public static void main( String[] args ) {
         String orderDate = args[0];
-        DataRetrieval.setBaseURL(args[1]);
-        centralArea = new Area(DataRetrieval.retrieveDataFromURL("centralArea", new TypeReference<ArrayList<LngLat>>(){}));
-        noFlyZones = DataRetrieval.retrieveDataFromURL("noFlyZones", new TypeReference<>(){});
-        orders = DataRetrieval.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
-        drone = new Drone(orders);
+        DataManager.setBaseURL(args[1]);
+        orders = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<Order[]>(){});
+        drone = new Drone(orders, orderDate);
+
+        drone.deliverOrders();
+
+        //DataManager.writeToJSONFile("test.json", "ksdjkofjef");
     }
 }

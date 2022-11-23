@@ -3,17 +3,19 @@ package uk.ac.ed.inf;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
 /**
  * Utility class used for retrieving data from a provided URL
  */
-public final class DataRetrieval {
-    static final ObjectMapper mapper = new ObjectMapper();
+public final class DataManager {
+    private static final ObjectMapper mapper = new ObjectMapper();
     private static String baseURL = "https://ilp-rest.azurewebsites.net/";
+    private static String baseFilePath = "./resultfiles/";
 
-    private DataRetrieval() {}
+    private DataManager() {}
 
     /**
      * Utility method for retrieving data from REST servers
@@ -21,14 +23,19 @@ public final class DataRetrieval {
      * @param typeRef TypeReference object needed for jackson to know the Java class to read data as
      * @return The data retrieved
      * @param <T> class that data needs to be retrieved as
-     * @throws IOException if data retrieval fails (URL of incorrect format, endpoint doesn't exist, etc.)
      */
     // ideally I wouldn't be passing a TypeReference object here since that's Jackson-specific
     // and the whole point is that this is the one and only function you'd need to change if, suppose,
     // your method of accessing the data changes... however, it screwed up the type of the object returned
     // if I created a new TypeReference object inside the function (for some strange reason)
-    public static <T> T retrieveDataFromURL(String endpointName, TypeReference<T> typeRef) throws IOException {
-        return mapper.readValue(new URL(baseURL + endpointName), typeRef);
+    public static <T> T retrieveDataFromURL(String endpointName, TypeReference<T> typeRef) {
+        try {
+            return mapper.readValue(new URL(baseURL + endpointName), typeRef);
+        }
+        catch(IOException e) {
+            System.err.println(e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -39,5 +46,15 @@ public final class DataRetrieval {
         // ensures that the endpoint names are appended properly when retrieving values
         if ((newURL.charAt(newURL.length() - 1)) != '/') { newURL += "/"; }
         baseURL = newURL;
+    }
+
+    public static void writeToJSONFile(String filename, Object object) {
+        try {
+            new File(baseFilePath).mkdir();
+            mapper.writeValue(new File(baseFilePath + filename), object);
+        }
+        catch (IOException e) {
+            System.err.println("Error writing JSON result file");
+        }
     }
 }
