@@ -17,11 +17,14 @@ public class Order {
 
     private OrderOutcome outcome = OrderOutcome.ValidButNotDelivered;
     @JsonIgnore
-    private LngLat deliveryLocation;
+    // this is only set to the restaurant's location once the orderItems validation is done, so I need a default value
+    private LngLat deliveryLocation = new LngLat(19.0760, 72.8777);
 
     // constant value representing delivery fee
     @JsonIgnore
     private static final int DELIVERY_FEE = 100;
+
+    private static final Restaurant[] allRestaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
 
     /**
      * Represents the information of an order placed with the drone delivery service
@@ -53,8 +56,8 @@ public class Order {
     private void validate() {
         validateExpiryDate();
         validateCVV();
-        validateOrderItems();
         validateCreditCardNumber();
+        validateOrderItems();
     }
 
     private void validateExpiryDate() {
@@ -84,10 +87,6 @@ public class Order {
         int totalCost = 100;
         boolean restaurantFound = false;
 
-        // maybe this should be changed? if you're intending to have a reference to a restaurant stored within the order,
-        // then maybe you shouldn't read into a local array? if you have the restaurant stored elsewhere then they wouldn't be the
-        // same object internally
-        Restaurant[] allRestaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
         for (Restaurant r : allRestaurants) {
             currentMenu = r.getMenu();
 
@@ -136,6 +135,7 @@ public class Order {
                             (firstTwoDigits >= 51 && firstTwoDigits <= 55))) // Mastercard prefix
             {
                 // credit card validation: Luhn's algorithm
+                // taken from IBM docs: https://www.ibm.com/docs/en/order-management-sw/9.3.0?topic=cpms-handling-credit-cards
                 int sumOfDoubledDigits = 0, sumOfRemainingDigits = 0;
                 for (int i = creditCardDigits.length - 1; i >= 0; i--) {
                     if (i % 2 == 0) {

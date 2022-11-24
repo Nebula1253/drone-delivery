@@ -3,8 +3,6 @@ package uk.ac.ed.inf;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -20,7 +18,7 @@ public record LngLat(
         @JsonProperty("latitude")
         double lat) {
     // constant representing minimum distance value
-    private static final double DIST_TOLERANCE = 0.00015;
+    public static final double DIST_TOLERANCE = 0.00015;
 
     /**
      * Checks whether this location is within the central area of the University campus, based on coordinates retrieved

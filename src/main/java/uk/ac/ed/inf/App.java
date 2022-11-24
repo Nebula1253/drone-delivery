@@ -21,7 +21,7 @@ public class App
         String orderDate = args[0];
         DataManager.setBaseURL(args[1]);
         orders = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<Order[]>(){});
-        drone = new Drone(orders, orderDate);
+        drone = new Drone(orders);
 
         drone.deliverOrders();
 
