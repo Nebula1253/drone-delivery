@@ -15,13 +15,19 @@ public class Drone {
     }
 
     public void deliverOrders() {
-        while (ordersToDeliver.size() > 0) {
+        ArrayList<LngLat> flightPath = new ArrayList<>();
+        while (ordersToDeliver.size() > 0 && nr_moves > flightPath.size())  {
             Order currentOrd = ordersToDeliver.remove(0);
             // deliver order
 
-            A_star(appletonTower, currentOrd.getDeliveryLocation());
-        }
+//            flightPath.addAll(A_star(appletonTower, currentOrd.getDeliveryLocation()));
+//            flightPath.addAll(A_star(currentOrd.getDeliveryLocation(), appletonTower));
+            flightPath.addAll(greedy(appletonTower, currentOrd.getDeliveryLocation()));
+            flightPath.addAll(greedy(currentOrd.getDeliveryLocation(), appletonTower));
 
+            nr_moves -= flightPath.size();
+        }
+        System.out.println(flightPath);
         //DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersToDeliver);
     }
 
@@ -78,5 +84,22 @@ public class Drone {
             totalPath.add(0, current);
         }
         return totalPath;
+    }
+
+    private ArrayList<LngLat> greedy(LngLat start, LngLat goal) {
+        LngLat current = start;
+        ArrayList<LngLat> flightPath = new ArrayList<>();
+        while (current.distanceTo(goal) > LngLat.DIST_TOLERANCE) {
+            double minDist = Double.POSITIVE_INFINITY;
+            for (CompassDirection dir : CompassDirection.values()) {
+                LngLat neighbour = current.nextPosition(dir);
+                if (neighbour.distanceTo(goal) < minDist) {
+                    minDist = neighbour.distanceTo(goal);
+                    current = neighbour;
+                }
+            }
+            flightPath.add(current);
+        }
+        return flightPath;
     }
 }
