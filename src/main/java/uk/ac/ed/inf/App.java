@@ -24,7 +24,5 @@ public class App
         drone = new Drone(orders);
 
         drone.deliverOrders();
-
-        //DataManager.writeToJSONFile("test.json", "ksdjkofjef");
     }
 }

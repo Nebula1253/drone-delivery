@@ -3,31 +3,41 @@ package uk.ac.ed.inf;
 import java.util.*;
 
 public class Drone {
-    private ArrayList<Order> ordersToDeliver;
+    private ArrayList<Order> ordersToDeliver = new ArrayList<>();
     private final LngLat appletonTower = new LngLat(-3.186874, 55.944494);
     private int nr_moves = 2000;
     private String orderDate;
 
     public Drone(Order[] ordersToDeliver) {
-        Arrays.sort(ordersToDeliver, (o1, o2) -> Double.compare(o2.getDeliveryLocation().distanceTo(appletonTower), o1.getDeliveryLocation().distanceTo(appletonTower)));
-        this.ordersToDeliver = new ArrayList<>(List.of(ordersToDeliver));
+        for (Order order : ordersToDeliver) {
+            if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) {
+                this.ordersToDeliver.add(order);
+            }
+        }
+        //this.ordersToDeliver.sort((o1, o2) -> Double.compare(o2.getDeliveryLocation().distanceTo(appletonTower), o1.getDeliveryLocation().distanceTo(appletonTower)));
         this.orderDate = this.ordersToDeliver.get(0).getOrderDate();
+        DataManager.writeToJSONFile("ordertest.json", this.ordersToDeliver);
+        System.out.println(this.ordersToDeliver.size());
     }
 
     public void deliverOrders() {
         ArrayList<LngLat> flightPath = new ArrayList<>();
-        while (ordersToDeliver.size() > 0 && nr_moves > flightPath.size())  {
+        ArrayList<LngLat> currentOrderFlightPath;
+        while (ordersToDeliver.size() > 0 && nr_moves > 0)  {
+            // moves required for this specific order, for the drone to fly to restaurant and back to appleton tower
             Order currentOrd = ordersToDeliver.remove(0);
-            // deliver order
-
-//            flightPath.addAll(A_star(appletonTower, currentOrd.getDeliveryLocation()));
-//            flightPath.addAll(A_star(currentOrd.getDeliveryLocation(), appletonTower));
-            flightPath.addAll(greedy(appletonTower, currentOrd.getDeliveryLocation()));
-            flightPath.addAll(greedy(currentOrd.getDeliveryLocation(), appletonTower));
-
-            nr_moves -= flightPath.size();
+            currentOrderFlightPath = greedy(appletonTower, currentOrd.getDeliveryLocation());
+            currentOrderFlightPath.addAll(greedy(currentOrd.getDeliveryLocation(), appletonTower));
+            //System.out.println(currentOrderFlightPath.size());
+            if (nr_moves >= currentOrderFlightPath.size()) {
+                // update number of moves remaining
+                nr_moves -= currentOrderFlightPath.size();
+                flightPath.addAll(currentOrderFlightPath);
+            }
+            else break;
         }
-        System.out.println(flightPath);
+
+        DataManager.writeToGeoJSONFile("drone-" + orderDate + ".geojson", flightPath);
         //DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersToDeliver);
     }
 

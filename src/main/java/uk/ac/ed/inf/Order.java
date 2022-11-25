@@ -16,8 +16,9 @@ public class Order {
     private ArrayList<String> orderItems;
 
     private OrderOutcome outcome = OrderOutcome.ValidButNotDelivered;
-    @JsonIgnore
+
     // this is only set to the restaurant's location once the orderItems validation is done, so I need a default value
+    @JsonIgnore
     private LngLat deliveryLocation = new LngLat(19.0760, 72.8777);
 
     // constant value representing delivery fee
@@ -54,10 +55,13 @@ public class Order {
     }
 
     private void validate() {
+        //TODO: figure out a way to break out of this as soon as the thing is invalid otherwise you're just wasting time
         validateExpiryDate();
         validateCVV();
         validateCreditCardNumber();
         validateOrderItems();
+
+        if (outcome == OrderOutcome.ValidButNotDelivered) System.out.println(this.deliveryLocation);
     }
 
     private void validateExpiryDate() {
@@ -75,87 +79,95 @@ public class Order {
     }
 
     private void validateCVV() {
-        // The CVV is invalid if it's longer than 3-4 characters and it contains non-numeric characters
-        if (!this.cvv.matches("^[0-9]{3,4}$")) { this.outcome = OrderOutcome.InvalidCvv; }
+        if (outcome == OrderOutcome.ValidButNotDelivered) {
+            // The CVV is invalid if it's longer than 3 characters or if it contains non-numeric characters
+            if (!this.cvv.matches("^[0-9]{3}$")) { this.outcome = OrderOutcome.InvalidCvv; }
+        }
     }
 
     //TODO: there is probably a better way to do this
     private void validateOrderItems() {
-        int itemsRemaining = this.orderItems.size();
-        if (itemsRemaining > 4) { this.outcome = OrderOutcome.InvalidPizzaCount; }
-        Menu[] currentMenu;
-        int totalCost = 100;
-        boolean restaurantFound = false;
+        if (outcome == OrderOutcome.ValidButNotDelivered) {
+            LngLat restaurantLocation = new LngLat(0,0);
+            int itemsRemaining = this.orderItems.size();
+            if (itemsRemaining > 4) { this.outcome = OrderOutcome.InvalidPizzaCount; return; }
+            Menu[] currentMenu;
+            int totalCost = DELIVERY_FEE;
+            boolean restaurantFound = false;
 
-        for (Restaurant r : allRestaurants) {
-            currentMenu = r.getMenu();
+            for (Restaurant r : allRestaurants) {
+                currentMenu = r.getMenu();
 
-            // iterate through every single menu item in the current restaurant
-            for (Menu m : currentMenu) {
-                // if this item has been ordered, add cost and flag that the restaurant has been found
-                if (this.orderItems.contains(m.name())) {
-                    totalCost += m.priceInPence();
-                    itemsRemaining--;
-                    restaurantFound = true;
-                    // set restaurant reference????
+                // iterate through every single menu item in the current restaurant
+                for (Menu m : currentMenu) {
+                    // if this item has been ordered, add cost and flag that the restaurant has been found
+                    if (this.orderItems.contains(m.name())) {
+                        totalCost += m.priceInPence();
+                        itemsRemaining--;
+                        restaurantLocation = new LngLat(r.getLongitude(), r.getLatitude());
+                        restaurantFound = true;
+                        // set restaurant reference????
+                    }
+                }
+
+                if (restaurantFound) {
+                    // if you've finished iterating through all the items for this restaurant, found a match for one or more items in the order,
+                    // and there are still items unaccounted for on the order, clearly something is wrong
+                    if (itemsRemaining > 0) {
+                        this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
+                    }
                 }
             }
-
-            if (restaurantFound) {
-                // if you've finished iterating through all the items for this restaurant, found a match for one or more items in the order,
-                // and there are still items unaccounted for on the order, clearly something is wrong
-                if (itemsRemaining != 0) {
-                    this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
-                }
-                // if the restaurant was found and all the menu items were accounted for, set the delivery location
-                else {
-                    this.deliveryLocation = new LngLat(r.getLongitude(), r.getLatitude());
-                }
+            // if you've gone through ALL the menu items of all the participating restaurants, and there are still remaining items,
+            // those items are then invalid
+            if (itemsRemaining > 0) {
+                this.outcome = OrderOutcome.InvalidPizzaNotDefined;
+                return;
             }
-        }
-        // if you've gone through ALL the menu items of all the participating restaurants, and there are still remaining items,
-        // those items are then invalid
-        if (itemsRemaining != 0) { this.outcome = OrderOutcome.InvalidPizzaNotDefined; }
 
-        // we've manually totalled up the price for all the items, including the delivery fee, so if this is inconsistent
-        // with the provided order total, we need to set the outcome accordingly
-        if (totalCost != this.priceTotalInPence) {
-            System.out.println(totalCost + " " + priceTotalInPence);
-            this.outcome = OrderOutcome.InvalidTotal;
+            // we've manually totalled up the price for all the items, including the delivery fee, so if this is inconsistent
+            // with the provided order total, we need to set the outcome accordingly
+            if (totalCost != this.priceTotalInPence) {
+                this.outcome = OrderOutcome.InvalidTotal;
+                return;
+            }
+
+            this.deliveryLocation = restaurantLocation;
         }
     }
 
     private void validateCreditCardNumber(){
-        String[] creditCardDigits = this.creditCardNumber.split("");
+        if (outcome == OrderOutcome.ValidButNotDelivered) {
+            String[] creditCardDigits = this.creditCardNumber.split("");
 
-        if (this.creditCardNumber.matches("[0-9]+")) { // contains no non-numeric characters, so that the parseint never fails
-            int firstTwoDigits = Integer.parseInt(creditCardDigits[0] + creditCardDigits[1]);
-            if (this.creditCardNumber.length() == 16 && // Standard credit card number length
-                    (creditCardDigits[0].equals("4") || // Visa prefix
-                            (firstTwoDigits >= 51 && firstTwoDigits <= 55))) // Mastercard prefix
-            {
-                // credit card validation: Luhn's algorithm
-                // taken from IBM docs: https://www.ibm.com/docs/en/order-management-sw/9.3.0?topic=cpms-handling-credit-cards
-                int sumOfDoubledDigits = 0, sumOfRemainingDigits = 0;
-                for (int i = creditCardDigits.length - 1; i >= 0; i--) {
-                    if (i % 2 == 0) {
-                        String[] doubledDigit = (Integer.toString(Integer.parseInt(creditCardDigits[i]) * 2)).split("");
-                        for (String s: doubledDigit) {
-                            sumOfDoubledDigits += Integer.parseInt(s);
+            if (this.creditCardNumber.matches("[0-9]+")) { // contains no non-numeric characters, so that the parseint never fails
+                int firstTwoDigits = Integer.parseInt(creditCardDigits[0] + creditCardDigits[1]);
+                if (this.creditCardNumber.length() == 16 && // Standard credit card number length
+                        (creditCardDigits[0].equals("4") || // Visa prefix
+                                (firstTwoDigits >= 51 && firstTwoDigits <= 55))) // Mastercard prefix
+                {
+                    // credit card validation: Luhn's algorithm
+                    // taken from IBM docs: https://www.ibm.com/docs/en/order-management-sw/9.3.0?topic=cpms-handling-credit-cards
+                    int sumOfDoubledDigits = 0, sumOfRemainingDigits = 0;
+                    for (int i = creditCardDigits.length - 1; i >= 0; i--) {
+                        if (i % 2 == 0) {
+                            String[] doubledDigit = (Integer.toString(Integer.parseInt(creditCardDigits[i]) * 2)).split("");
+                            for (String s: doubledDigit) {
+                                sumOfDoubledDigits += Integer.parseInt(s);
+                            }
+                        }
+                        else {
+                            sumOfRemainingDigits += Integer.parseInt(creditCardDigits[i]);
                         }
                     }
-                    else {
-                        sumOfRemainingDigits += Integer.parseInt(creditCardDigits[i]);
+                    if ((sumOfDoubledDigits+sumOfRemainingDigits) % 10 != 0) {
+                        this.outcome = OrderOutcome.InvalidCardNumber;
                     }
                 }
-                if ((sumOfDoubledDigits+sumOfRemainingDigits) % 10 != 0) {
-                    this.outcome = OrderOutcome.InvalidCardNumber;
-                }
+                else { this.outcome = OrderOutcome.InvalidCardNumber; }
             }
             else { this.outcome = OrderOutcome.InvalidCardNumber; }
         }
-        else { this.outcome = OrderOutcome.InvalidCardNumber; }
-
     }
 
     /**
