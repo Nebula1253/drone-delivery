@@ -43,6 +43,27 @@ public class Area {
         return odd;
     }
 
+    public boolean lineIntersectsArea(LngLat a, LngLat b) {
+        // TODO: pretty sure this assumes the edge extends to infinity
+        for (int i = 0; i < cornerPoints.size(); i++) {
+            LngLat p1 = cornerPoints.get(i);
+            LngLat p2;
+            if (i == cornerPoints.size() - 1) {
+                p2 = cornerPoints.get(0);
+            }
+            else p2 = cornerPoints.get(i+1);
+
+            double gradient = (p2.lat() - p1.lat()) / (p2.lng() - p1.lng());
+            double intercept = p2.lat() - (p2.lng() * gradient);
+
+            double aVal = (gradient * a.lng()) + intercept - a.lat();
+            double bVal = (gradient * b.lng()) + intercept - b.lat();
+
+            if (Math.signum(aVal) != Math.signum(bVal)) return true;
+        }
+        return false;
+    }
+
     public ArrayList<LngLat> getCornerPoints() {
         return cornerPoints;
     }

@@ -61,7 +61,7 @@ public class Order {
         validateCreditCardNumber();
         validateOrderItems();
 
-        if (outcome == OrderOutcome.ValidButNotDelivered) System.out.println(this.deliveryLocation);
+        if (outcome != OrderOutcome.ValidButNotDelivered) System.out.println(outcome);
     }
 
     private void validateExpiryDate() {
@@ -71,7 +71,8 @@ public class Order {
             LocalDate expiryDate = LocalDate.parse("01/" + this.creditCardExpiry, DateTimeFormatter.ofPattern("dd/MM/yy"))
                     .with(TemporalAdjusters.lastDayOfMonth());
             //System.out.println(expiryDate + " " + LocalDate.now());
-            if (expiryDate.isBefore(LocalDate.now())) {
+            LocalDate orderDate = LocalDate.parse(this.orderDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            if (expiryDate.isBefore(orderDate)) {
                 this.outcome = OrderOutcome.InvalidExpiryDate;
             }
         }
@@ -106,21 +107,20 @@ public class Order {
                         itemsRemaining--;
                         restaurantLocation = new LngLat(r.getLongitude(), r.getLatitude());
                         restaurantFound = true;
-                        // set restaurant reference????
                     }
                 }
 
-                if (restaurantFound) {
-                    // if you've finished iterating through all the items for this restaurant, found a match for one or more items in the order,
-                    // and there are still items unaccounted for on the order, clearly something is wrong
-                    if (itemsRemaining > 0) {
-                        this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
-                    }
+
+                if (restaurantFound && itemsRemaining > 0) {
+                    this.outcome = OrderOutcome.InvalidPizzaCombinationMultipleSuppliers;
+                    //System.out.println(orderItems);
+                    //break;
                 }
             }
             // if you've gone through ALL the menu items of all the participating restaurants, and there are still remaining items,
             // those items are then invalid
             if (itemsRemaining > 0) {
+                //System.out.println(orderItems);
                 this.outcome = OrderOutcome.InvalidPizzaNotDefined;
                 return;
             }
@@ -128,6 +128,7 @@ public class Order {
             // we've manually totalled up the price for all the items, including the delivery fee, so if this is inconsistent
             // with the provided order total, we need to set the outcome accordingly
             if (totalCost != this.priceTotalInPence) {
+                //System.out.println(totalCost + " " + priceTotalInPence);
                 this.outcome = OrderOutcome.InvalidTotal;
                 return;
             }
@@ -148,23 +149,29 @@ public class Order {
                 {
                     // credit card validation: Luhn's algorithm
                     // taken from IBM docs: https://www.ibm.com/docs/en/order-management-sw/9.3.0?topic=cpms-handling-credit-cards
-                    int sumOfDoubledDigits = 0, sumOfRemainingDigits = 0;
+                    int sumOfDigits = 0;
                     for (int i = creditCardDigits.length - 1; i >= 0; i--) {
-                        if (i % 2 == 0) {
-                            String[] doubledDigit = (Integer.toString(Integer.parseInt(creditCardDigits[i]) * 2)).split("");
-                            for (String s: doubledDigit) {
-                                sumOfDoubledDigits += Integer.parseInt(s);
-                            }
+                        if ((creditCardDigits.length - i) % 2 == 0) {
+//                            String[] doubledDigit = (Integer.toString(Integer.parseInt(creditCardDigits[i]) * 2)).split("");
+//                            for (String s: doubledDigit) {
+//                                sumOfDoubledDigits += Integer.parseInt(s);
+//                            }
+                            int doubledDigit = Integer.parseInt(creditCardDigits[i]) * 2;
+                            if (doubledDigit > 9) doubledDigit -= 9;
+                            sumOfDigits += doubledDigit;
                         }
                         else {
-                            sumOfRemainingDigits += Integer.parseInt(creditCardDigits[i]);
+                            sumOfDigits += Integer.parseInt(creditCardDigits[i]);
                         }
                     }
-                    if ((sumOfDoubledDigits+sumOfRemainingDigits) % 10 != 0) {
+                    if (sumOfDigits % 10 != 0) {
                         this.outcome = OrderOutcome.InvalidCardNumber;
                     }
                 }
-                else { this.outcome = OrderOutcome.InvalidCardNumber; }
+                else {
+                    this.outcome = OrderOutcome.InvalidCardNumber;
+                    System.out.println(creditCardNumber);
+                }
             }
             else { this.outcome = OrderOutcome.InvalidCardNumber; }
         }
@@ -207,5 +214,9 @@ public class Order {
 
     public LngLat getDeliveryLocation() {
         return deliveryLocation;
+    }
+
+    public void deliver() {
+        outcome = OrderOutcome.Delivered;
     }
 }

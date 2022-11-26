@@ -2,6 +2,7 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mapbox.geojson.*;
 
 import java.io.BufferedWriter;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
  * Utility class used for retrieving data from a provided URL
  */
 public final class DataManager {
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static String baseURL = "https://ilp-rest.azurewebsites.net/";
     private static String baseFilePath = "./resultfiles/";
 

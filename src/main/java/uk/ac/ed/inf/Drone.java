@@ -3,42 +3,62 @@ package uk.ac.ed.inf;
 import java.util.*;
 
 public class Drone {
-    private ArrayList<Order> ordersToDeliver = new ArrayList<>();
-    private final LngLat appletonTower = new LngLat(-3.186874, 55.944494);
-    private int nr_moves = 2000;
+    private final ArrayList<Order> ordersToDeliver;
+    private static final LngLat APPLETON_TOWER = new LngLat(-3.186874, 55.944494);
+    private int nrMoves = 2000;
     private String orderDate;
 
-    public Drone(Order[] ordersToDeliver) {
+    public Drone(ArrayList<Order> ordersToDeliver) {
+        int nrValidOrders = 0;
         for (Order order : ordersToDeliver) {
             if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) {
-                this.ordersToDeliver.add(order);
+                nrValidOrders++;
             }
         }
-        //this.ordersToDeliver.sort((o1, o2) -> Double.compare(o2.getDeliveryLocation().distanceTo(appletonTower), o1.getDeliveryLocation().distanceTo(appletonTower)));
+        System.out.println(nrValidOrders);
+        this.ordersToDeliver = ordersToDeliver;
+        // because of the default value of the order location (i.e. the value that all invalid orders will have)
+        // being entirely outside Edinburgh, the distance from Appleton is obviously higher for those orders
+        // therefore, valid orders are guaranteed to be at the start of this list
+        this.ordersToDeliver.sort(Comparator.comparingDouble(o -> o.getDeliveryLocation().distanceTo(APPLETON_TOWER)));
         this.orderDate = this.ordersToDeliver.get(0).getOrderDate();
-        DataManager.writeToJSONFile("ordertest.json", this.ordersToDeliver);
-        System.out.println(this.ordersToDeliver.size());
+        //DataManager.writeToJSONFile("ordertest.json", this.ordersToDeliver);
+        //System.out.println(this.ordersToDeliver.size());
     }
 
     public void deliverOrders() {
         ArrayList<LngLat> flightPath = new ArrayList<>();
+        flightPath.add(APPLETON_TOWER);
+
         ArrayList<LngLat> currentOrderFlightPath;
-        while (ordersToDeliver.size() > 0 && nr_moves > 0)  {
-            // moves required for this specific order, for the drone to fly to restaurant and back to appleton tower
-            Order currentOrd = ordersToDeliver.remove(0);
-            currentOrderFlightPath = greedy(appletonTower, currentOrd.getDeliveryLocation());
-            currentOrderFlightPath.addAll(greedy(currentOrd.getDeliveryLocation(), appletonTower));
-            //System.out.println(currentOrderFlightPath.size());
-            if (nr_moves >= currentOrderFlightPath.size()) {
+        ArrayList<Order> dummyOrders = (ArrayList<Order>) ordersToDeliver.clone();
+        int ordersDelivered = 0;
+
+        while (ordersToDeliver.size() > 0 && nrMoves > 0)  {
+            // moves required for this specific order, for the drone to fly to restaurant and back to Appleton
+            Order currentOrd = dummyOrders.remove(0);
+            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
+            //currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), APPLETON_TOWER));
+            for (int i = currentOrderFlightPath.size() - 1; i >= 0; i--) {
+                currentOrderFlightPath.add(currentOrderFlightPath.get(i));
+            }
+
+            if (nrMoves >= currentOrderFlightPath.size()) {
                 // update number of moves remaining
-                nr_moves -= currentOrderFlightPath.size();
+                nrMoves -= currentOrderFlightPath.size();
+
+                // add to flightPath: this means the drone has "executed" the calculated path
                 flightPath.addAll(currentOrderFlightPath);
+
+                ordersToDeliver.get(ordersDelivered).deliver();
+
+                ordersDelivered++;
             }
             else break;
         }
 
         DataManager.writeToGeoJSONFile("drone-" + orderDate + ".geojson", flightPath);
-        //DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersToDeliver);
+        DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersToDeliver);
     }
 
     private ArrayList<LngLat> A_star(LngLat start, LngLat goal) {
@@ -104,10 +124,21 @@ public class Drone {
             for (CompassDirection dir : CompassDirection.values()) {
                 LngLat neighbour = current.nextPosition(dir);
                 if (neighbour.distanceTo(goal) < minDist) {
-                    minDist = neighbour.distanceTo(goal);
-                    current = neighbour;
+                    // TODO: noFlyZone INTERSECTION (i.e. the LngLat itself is not within the zone, but the line between the current and destination node is)
+                    boolean inNoFlyZone = false;
+                    for (Area zone : App.noFlyZones) {
+                        if (zone.pointInArea(neighbour)) {
+                            inNoFlyZone = true;
+                            break;
+                        }
+                    }
+                    if (!inNoFlyZone) {
+                        minDist = neighbour.distanceTo(goal);
+                        current = neighbour;
+                    }
                 }
             }
+            //TODO: add functionality to write drone move with 'from' and 'to' LngLats, as well as what angle was used
             flightPath.add(current);
         }
         return flightPath;
