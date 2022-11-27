@@ -9,6 +9,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 
+// this could be a record, but I needed private attributes that weren't part of the constructor (like the outcome and the delivery location)
+// and records don't allow for that
 public class Order {
     private String orderNo, orderDate, customer, creditCardNumber, creditCardExpiry, cvv;
     private int priceTotalInPence;
@@ -59,8 +61,6 @@ public class Order {
         validateCVV();
         validateCreditCardNumber();
         validateOrderItems();
-
-        if (outcome != OrderOutcome.ValidButNotDelivered) System.out.println(outcome);
     }
 
     private void validateExpiryDate() {

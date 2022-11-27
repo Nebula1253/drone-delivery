@@ -7,9 +7,9 @@ public class Drone {
     private static final LngLat APPLETON_TOWER = new LngLat(-3.186874, 55.944494);
     private int nrMoves = 2000;
     private int ticksSinceStartOfCalculation = 0;
-    private String orderDate;
+    private final String orderDate;
     private String orderNo;
-    private ArrayList<DroneMove> moveLog = new ArrayList<>();
+    private final ArrayList<DroneMove> moveLog = new ArrayList<>();
 
     public Drone(ArrayList<Order> ordersToDeliver) {
         int nrValidOrders = 0;
@@ -27,7 +27,6 @@ public class Drone {
         this.ordersToDeliver.sort(Comparator.comparingDouble(o -> o.getDeliveryLocation().distanceTo(APPLETON_TOWER)));
 
         this.orderDate = this.ordersToDeliver.get(0).getOrderDate();
-        this.orderNo = this.ordersToDeliver.get(0).getOrderNo();
     }
 
     public void deliverOrders() {
@@ -41,12 +40,10 @@ public class Drone {
             // moves required for this specific order, for the drone to fly to restaurant and back to Appleton
             Order currentOrd = this.ordersToDeliver.get(ordersDelivered);
             if (currentOrd.getOutcome() != OrderOutcome.ValidButNotDelivered) break;
+            this.orderNo = currentOrd.getOrderNo();
 
             currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
             currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), APPLETON_TOWER));
-//            for (int i = currentOrderFlightPath.size() - 1; i >= 0; i--) {
-//                currentOrderFlightPath.add(currentOrderFlightPath.get(i));
-//            }
 
             if (nrMoves >= currentOrderFlightPath.size()) {
                 // update number of moves remaining
@@ -60,14 +57,19 @@ public class Drone {
                 ordersDelivered++;
             }
             else {
+                for (int i = 1; i < currentOrderFlightPath.size(); i++) {
+                    moveLog.remove(moveLog.size() - i);
+                }
                 break;
             }
         }
 
         DataManager.writeToGeoJSONFile("drone-" + orderDate + ".geojson", flightPath);
         DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersToDeliver);
+        DataManager.writeToJSONFile("flightpath-" + orderDate + ".json", moveLog);
 
         System.out.println(ordersDelivered);
+        System.out.println(flightPath.size() + " " + moveLog.size());
     }
 
     private ArrayList<LngLat> A_star(LngLat start, LngLat goal) {
@@ -126,12 +128,12 @@ public class Drone {
     }
 
     private ArrayList<LngLat> greedy(LngLat start, LngLat goal) {
-        //TODO: centralArea functionality: once it enters it can't exit
         LngLat current = start;
         ArrayList<LngLat> flightPath = new ArrayList<>();
+        boolean reenteredCentralArea = false;
 
         while (!current.closeTo(goal)) {
-            var timeAtStart = (int) System.nanoTime();
+            var timeAtStartOfCalculation = (int) System.nanoTime();
             var minDistanceFromGoal = Double.POSITIVE_INFINITY;
             CompassDirection bestDir = null;
 
@@ -140,7 +142,7 @@ public class Drone {
                 boolean inNoFlyZone = false;
 
                 // TODO: noFlyZone INTERSECTION (i.e. the LngLat itself is not within the zone, but the line between the current and destination node is)
-                for (Area zone : App.noFlyZones) {
+                for (Area zone : App.NO_FLY_ZONES) {
                     if (zone.pointInArea(neighbour) || zone.lineIntersectsArea(current, neighbour)) {
                         inNoFlyZone = true;
                         //distance += Double.POSITIVE_INFINITY;
@@ -149,10 +151,10 @@ public class Drone {
                         break;
                     }
                 }
-                if (inNoFlyZone || flightPath.contains(neighbour)) continue;
+                if (inNoFlyZone || (reenteredCentralArea && !App.CENTRAL_AREA.pointInArea(neighbour)) || flightPath.contains(neighbour)) continue;
                 //System.out.println(dir + " " + distance);
-                //double distance = neighbour.distanceTo(goal);
-                var distance = Math.abs(neighbour.lng() - goal.lng()) + Math.abs(neighbour.lat() - goal.lat());
+                double distance = neighbour.distanceTo(goal);
+                //var distance = Math.abs(neighbour.lng() - goal.lng()) + Math.abs(neighbour.lat() - goal.lat());
                 if (distance <= minDistanceFromGoal) {
                     minDistanceFromGoal = distance;
                     bestDir = dir;
@@ -162,14 +164,15 @@ public class Drone {
             //System.out.println(current);
             var nextPos = current.nextPosition(bestDir);
 
-            var timeElapsed = (int) System.nanoTime() - timeAtStart;
-            ticksSinceStartOfCalculation += timeElapsed;
+            var timeAtEndOfCalculation = (int) System.nanoTime() - timeAtStartOfCalculation;
+            ticksSinceStartOfCalculation += timeAtEndOfCalculation;
             moveLog.add(new DroneMove(orderNo, current.lng(), current.lat(),
                     Math.toRadians(bestDir.ordinal() * (360f / CompassDirection.values().length)),
                     nextPos.lng(), nextPos.lat(), ticksSinceStartOfCalculation));
 
+            if (!App.CENTRAL_AREA.pointInArea(current) && App.CENTRAL_AREA.pointInArea(nextPos)) reenteredCentralArea = true;
+
             current = nextPos;
-            //TODO: add functionality to write drone move with 'from' and 'to' LngLats, as well as what angle was used
 
             flightPath.add(current);
         }

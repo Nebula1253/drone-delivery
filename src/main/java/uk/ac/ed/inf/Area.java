@@ -9,10 +9,20 @@ import java.util.ArrayList;
 public class Area {
     private final ArrayList<LngLat> cornerPoints;
 
+    /**
+     * Represents an area enclosed by boundary points on the map
+     * @param cornerPoints a list of LngLats representing the boundary points
+     */
+    // intended for use with central area
     public Area(ArrayList<LngLat> cornerPoints) {
         this.cornerPoints = cornerPoints;
     }
 
+    /**
+     * Represents an area enclosed by boundary points on the map
+     * @param coordinates a 2D array of doubles, each sub-array representing one boundary point
+     */
+    // intended for use with no fly zones
     @ConstructorProperties("coordinates")
     public Area(double[][] coordinates) {
         this.cornerPoints = new ArrayList<>();
@@ -21,6 +31,11 @@ public class Area {
         }
     }
 
+    /**
+     * Checks whether a given point, represented by latitude and longitude coordinates, is within this area
+     * @param point the point being checked
+     * @return True if the point is inside, False otherwise
+     */
     public boolean pointInArea(LngLat point) {
         boolean odd = false;
         LngLat prevPt = cornerPoints.get(cornerPoints.size() - 1);
@@ -28,7 +43,7 @@ public class Area {
         for (LngLat currPt: cornerPoints) {
             // if line intersects this edge, invert "odd"
             if ((currPt.lat() > point.lat()) != (prevPt.lat() > point.lat())) { // the y-coordinate of this point lies between the y-coordinates of the edge points
-                var xCoordIntersect = prevPt.lng() + ((currPt.lng() - prevPt.lng() * (point.lat() - prevPt.lat()) / (currPt.lat() - prevPt.lat())));
+                var xCoordIntersect = currPt.lng() + ((prevPt.lng() - currPt.lng()) * (point.lat() - currPt.lat()) / (prevPt.lat() - currPt.lat()));
                 if (point.lng() < xCoordIntersect) {
                     odd = !odd;
                     System.out.println(prevPt + " " + currPt);
@@ -48,21 +63,43 @@ public class Area {
         return odd;
     }
 
+    /**
+     *
+     * @param a
+     * @param b
+     * @param c
+     * @return
+     */
     private int orientation(LngLat a, LngLat b, LngLat c) {
         var val = (b.lat() - a.lat()) * (c.lng() - b.lng()) - (b.lng() - a.lng()) * (c.lat() - b.lat());
         if (val == 0) return 0;
         return (val > 0) ? 1 : 2;
     }
 
+    /**
+     *
+     * @param a
+     * @param b
+     * @param c
+     * @return
+     */
     private boolean onSegment(LngLat a, LngLat b, LngLat c) {
         return (c.lng() <= Math.max(a.lng(), b.lng()) && c.lng() >= Math.min(a.lng(), b.lng()) &&
                 c.lat() <= Math.max(a.lat(), b.lat()) && c.lat() >= Math.min(a.lat(), b.lat()));
     }
 
+    /**
+     * Checks if a straight line, represented by two points, intersects the boundaries of this area
+     * @param lineStart the start point of the line
+     * @param lineEnd the end point of the line
+     * @return True if the
+     */
     public boolean lineIntersectsArea(LngLat lineStart, LngLat lineEnd) {
+        // taken from geeksforgeeks.com
         LngLat edgeStart = cornerPoints.get(cornerPoints.size() - 1);
 
         for (LngLat edgeEnd : cornerPoints) {
+            // taken from geeksforgeeks.com
 //            int o1 = orientation(p1, q1, p2);
 //            int o2 = orientation(p1, q1, q2);
 //            int o3 = orientation(p2, q2, p1);
@@ -96,6 +133,10 @@ public class Area {
         return false;
     }
 
+    /**
+     * Getter function for the vertices of this area
+     * @return the area's vertices
+     * */
     public ArrayList<LngLat> getCornerPoints() {
         return cornerPoints;
     }

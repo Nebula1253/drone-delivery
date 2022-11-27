@@ -16,9 +16,9 @@ import java.util.ArrayList;
  * Utility class used for retrieving data from a provided URL
  */
 public final class DataManager {
-    private static final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static String baseURL = "https://ilp-rest.azurewebsites.net/";
-    private static String baseFilePath = "./resultfiles/";
+    private static final String BASE_FILE_PATH = "./resultfiles/";
 
     private DataManager() {}
 
@@ -35,7 +35,7 @@ public final class DataManager {
     // if I created a new TypeReference object inside the function (for some strange reason)
     public static <T> T retrieveDataFromURL(String endpointName, TypeReference<T> typeRef) {
         try {
-            return mapper.readValue(new URL(baseURL + endpointName), typeRef);
+            return MAPPER.readValue(new URL(baseURL + endpointName), typeRef);
         }
         catch(IOException e) {
             System.err.println(e.getMessage());
@@ -60,8 +60,8 @@ public final class DataManager {
      */
     public static void writeToJSONFile(String filename, Object object) {
         try {
-            new File(baseFilePath).mkdir();
-            mapper.writeValue(new File(baseFilePath + filename), object);
+            new File(BASE_FILE_PATH).mkdir();
+            MAPPER.writeValue(new File(BASE_FILE_PATH + filename), object);
         }
         catch (IOException e) {
             System.err.println(e.getMessage());
@@ -69,9 +69,9 @@ public final class DataManager {
     }
 
     /**
-     *
-     * @param filename
-     * @param points
+     * Converts a list of coordinates into a GeoJSON file
+     * @param filename The name of the target file to be created / overwritten
+     * @param points The list of LngLats to be converted
      */
     public static void writeToGeoJSONFile(String filename, ArrayList<LngLat> points) {
         ArrayList<Point> geoJsonPoints = new ArrayList<>();
@@ -81,8 +81,8 @@ public final class DataManager {
 
         String jsonString = FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(geoJsonPoints))).toJson();
         try {
-            new File(baseFilePath).mkdir();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(baseFilePath + filename));
+            new File(BASE_FILE_PATH).mkdir();
+            BufferedWriter writer = new BufferedWriter(new FileWriter(BASE_FILE_PATH + filename));
             writer.write(jsonString);
             writer.close();
         }

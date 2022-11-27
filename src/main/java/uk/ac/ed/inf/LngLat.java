@@ -2,9 +2,6 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * Represents a location in the world, with longitude and latitude coordinates
@@ -19,44 +16,6 @@ public record LngLat(
         double lat) {
     // constant representing minimum distance value
     public static final double DIST_TOLERANCE = 0.00015;
-
-    /**
-     * Checks whether this location is within the central area of the University campus, based on coordinates retrieved
-     * from a REST server
-     * @return A boolean value showing whether the point is within the central area
-     */
-    public boolean inCentralArea() {
-        ArrayList<LngLat> areaPoints = DataManager.retrieveDataFromURL("centralArea", new TypeReference<>(){});
-
-        // STRICTLY FOR TESTING NON-RECTANGULAR CENTRAL AREAS
-        //areaPoints = changeAreaPoints();
-
-        // Using the ray-casting method to check whether the point is inside the central area polygon i.e.
-        // if a line from the point to the right toward infinity intersects the polygon edges an odd number of times or not
-        // (odd means it's inside the polygon)
-
-        boolean odd = false;
-        LngLat prevPt = areaPoints.get(areaPoints.size() - 1);
-
-        for (LngLat currPt: areaPoints) {
-            // if line intersects this edge, invert "odd"
-            if ((currPt.lat > this.lat) != (prevPt.lat > this.lat) && // the y-coordinate of this point lies between the y-coordinates of the edge points
-                    (this.lng < (prevPt.lng - currPt.lng) * (this.lat - currPt.lat) /
-                            (prevPt.lat - currPt.lat) + currPt.lng)) { // the x-coordinate of the intersection point is to the right of this point
-                // for debugging
-                //System.out.println(prevPt + ", " + currPt);
-                odd = !odd;
-            }
-
-            // if the point is already on the edge, return true
-            if (this.distanceTo(currPt) + this.distanceTo(prevPt) == currPt.distanceTo(prevPt)) {
-                return true;
-            }
-            prevPt = currPt;
-        }
-
-        return odd;
-    }
 
     /**
      * Determines the distance between two locations
@@ -92,19 +51,5 @@ public record LngLat(
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);
-    }
-
-    // STRICTLY FOR TESTING PURPOSES
-    // terrible way of getting to test non-rectangular central area definitions
-    private ArrayList<LngLat> changeAreaPoints() {
-        // testing polygon 1
-//        return new ArrayList<>(Arrays.asList(new LngLat(0,0), new LngLat(0, -5),
-//                new LngLat(1, -5), new LngLat(1, -4), new LngLat(2, -4), new LngLat(3, -3),
-//                new LngLat(1,1)));
-
-        // testing polygon 2 (specifically for if the line passes straight through a vertex)
-        return new ArrayList<>(Arrays.asList(new LngLat(0, 0), new LngLat(-2, -2),
-                new LngLat(-1, -2), new LngLat(0, -1), new LngLat(1, -2),
-                new LngLat(2, -2)));
     }
 }
