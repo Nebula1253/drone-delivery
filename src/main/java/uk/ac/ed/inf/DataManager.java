@@ -53,6 +53,11 @@ public final class DataManager {
         baseURL = newURL;
     }
 
+    /**
+     *
+     * @param filename
+     * @param object
+     */
     public static void writeToJSONFile(String filename, Object object) {
         try {
             new File(baseFilePath).mkdir();
@@ -63,6 +68,11 @@ public final class DataManager {
         }
     }
 
+    /**
+     *
+     * @param filename
+     * @param points
+     */
     public static void writeToGeoJSONFile(String filename, ArrayList<LngLat> points) {
         ArrayList<Point> geoJsonPoints = new ArrayList<>();
         for (LngLat point : points) {

@@ -55,7 +55,6 @@ public class Order {
     }
 
     private void validate() {
-        //TODO: figure out a way to break out of this as soon as the thing is invalid otherwise you're just wasting time
         validateExpiryDate();
         validateCVV();
         validateCreditCardNumber();
@@ -70,8 +69,8 @@ public class Order {
             // the expiry date always refers to the very last day of the month, so the object is adjusted accordingly
             LocalDate expiryDate = LocalDate.parse("01/" + this.creditCardExpiry, DateTimeFormatter.ofPattern("dd/MM/yy"))
                     .with(TemporalAdjusters.lastDayOfMonth());
-            //System.out.println(expiryDate + " " + LocalDate.now());
             LocalDate orderDate = LocalDate.parse(this.orderDate, DateTimeFormatter.ISO_LOCAL_DATE);
+
             if (expiryDate.isBefore(orderDate)) {
                 this.outcome = OrderOutcome.InvalidExpiryDate;
             }
@@ -86,7 +85,6 @@ public class Order {
         }
     }
 
-    //TODO: there is probably a better way to do this
     private void validateOrderItems() {
         if (outcome == OrderOutcome.ValidButNotDelivered) {
             LngLat restaurantLocation = new LngLat(0,0);
@@ -97,7 +95,7 @@ public class Order {
             boolean restaurantFound = false;
 
             for (Restaurant r : allRestaurants) {
-                currentMenu = r.getMenu();
+                currentMenu = r.menu();
 
                 // iterate through every single menu item in the current restaurant
                 for (Menu m : currentMenu) {
@@ -105,7 +103,7 @@ public class Order {
                     if (this.orderItems.contains(m.name())) {
                         totalCost += m.priceInPence();
                         itemsRemaining--;
-                        restaurantLocation = new LngLat(r.getLongitude(), r.getLatitude());
+                        restaurantLocation = new LngLat(r.longitude(), r.latitude());
                         restaurantFound = true;
                     }
                 }
@@ -133,54 +131,42 @@ public class Order {
                 return;
             }
 
-            this.deliveryLocation = restaurantLocation;
+            if (this.outcome == OrderOutcome.ValidButNotDelivered) this.deliveryLocation = restaurantLocation;
         }
     }
 
     private void validateCreditCardNumber(){
         if (outcome == OrderOutcome.ValidButNotDelivered) {
             String[] creditCardDigits = this.creditCardNumber.split("");
-
-            if (this.creditCardNumber.matches("[0-9]+")) { // contains no non-numeric characters, so that the parseint never fails
-                int firstTwoDigits = Integer.parseInt(creditCardDigits[0] + creditCardDigits[1]);
-                if (this.creditCardNumber.length() == 16 && // Standard credit card number length
-                        (creditCardDigits[0].equals("4") || // Visa prefix
-                                (firstTwoDigits >= 51 && firstTwoDigits <= 55))) // Mastercard prefix
-                {
-                    // credit card validation: Luhn's algorithm
-                    // taken from IBM docs: https://www.ibm.com/docs/en/order-management-sw/9.3.0?topic=cpms-handling-credit-cards
-                    int sumOfDigits = 0;
-                    for (int i = creditCardDigits.length - 1; i >= 0; i--) {
-                        if ((creditCardDigits.length - i) % 2 == 0) {
-//                            String[] doubledDigit = (Integer.toString(Integer.parseInt(creditCardDigits[i]) * 2)).split("");
-//                            for (String s: doubledDigit) {
-//                                sumOfDoubledDigits += Integer.parseInt(s);
-//                            }
-                            int doubledDigit = Integer.parseInt(creditCardDigits[i]) * 2;
-                            if (doubledDigit > 9) doubledDigit -= 9;
-                            sumOfDigits += doubledDigit;
-                        }
-                        else {
-                            sumOfDigits += Integer.parseInt(creditCardDigits[i]);
-                        }
+            if (this.creditCardNumber.length() == 16 && // Standard credit card number length
+                    (this.creditCardNumber.matches("^4[0-9]*$") || // Visa prefix
+                    (this.creditCardNumber.matches("^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)[0-9]*$")))) // Mastercard prefix
+            {
+                // credit card validation: Luhn's algorithm
+                int sumOfDigits = 0;
+                for (int i = creditCardDigits.length - 1; i >= 0; i--) {
+                    if ((creditCardDigits.length - i) % 2 == 0) {
+                        int doubledDigit = Integer.parseInt(creditCardDigits[i]) * 2;
+                        if (doubledDigit > 9) doubledDigit -= 9;
+                        sumOfDigits += doubledDigit;
                     }
-                    if (sumOfDigits % 10 != 0) {
-                        this.outcome = OrderOutcome.InvalidCardNumber;
-                    }
+                    else sumOfDigits += Integer.parseInt(creditCardDigits[i]);
                 }
-                else {
+                if (sumOfDigits % 10 != 0) {
                     this.outcome = OrderOutcome.InvalidCardNumber;
-                    System.out.println(creditCardNumber);
                 }
             }
-            else { this.outcome = OrderOutcome.InvalidCardNumber; }
+            else {
+                this.outcome = OrderOutcome.InvalidCardNumber;
+                //System.out.println(creditCardNumber);
+            }
         }
     }
 
     /**
      * Determines the cost of having order items delivered by drone, including the 1-pound delivery cost
      */
-    public int getDeliveryCost() {
+    public int getCostInPence() {
         return this.priceTotalInPence + DELIVERY_FEE;
     }
 
