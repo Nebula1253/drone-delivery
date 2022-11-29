@@ -2,31 +2,40 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 
 public class App 
 {
     public static Area CENTRAL_AREA;
     public static Area[] NO_FLY_ZONES;
-    private static ArrayList<Order> orders;
+    public static ArrayList<Order> ordersForThisDay;
+    public static String orderDate;
+    public static final LngLat APPLETON_TOWER = new LngLat(-3.186874, 55.944494);
     private static Drone drone;
 
     public static void main( String[] args ) {
-        String orderDate = args[0];
+        orderDate = args[0];
         DataManager.setBaseURL(args[1]);
-        orders = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
+        ordersForThisDay = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
         CENTRAL_AREA = new Area(DataManager.retrieveDataFromURL("centralArea", new TypeReference<ArrayList<LngLat>>(){}));
         NO_FLY_ZONES = DataManager.retrieveDataFromURL("noFlyZones", new TypeReference<>(){});
 
-        drone = new Drone(orders);
+        // because of the default value of the order location (i.e. the value that all invalid orders will have)
+        // being entirely outside Edinburgh, the distance from Appleton is obviously higher for those orders
+        // therefore, valid orders are guaranteed to be at the start of this list
+        ordersForThisDay.sort(Comparator.comparingDouble(o -> o.getDeliveryLocation().distanceTo(APPLETON_TOWER)));
 
+        drone = new Drone();
         drone.deliverOrders();
 
-        orders = DataManager.retrieveDataFromURL("orders", new TypeReference<>(){});
+        DataManager.writeToJSONFile("deliveries-" + orderDate + ".json", ordersForThisDay);
+
+        ordersForThisDay = DataManager.retrieveDataFromURL("orders", new TypeReference<>(){});
         HashMap<OrderOutcome, Integer> map = new HashMap<>();
 
         //int validOrders = 0;
-        for (Order order : orders) {
+        for (Order order : ordersForThisDay) {
             //if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) validOrders++;
             map.put(order.getOutcome(), map.getOrDefault(order.getOutcome(), 0) + 1);
         }

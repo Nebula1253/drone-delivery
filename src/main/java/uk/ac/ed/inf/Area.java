@@ -5,12 +5,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.beans.ConstructorProperties;
 import java.util.ArrayList;
 
+/**
+ * Represents an area enclosed by boundary points on the map
+ */
 @JsonIgnoreProperties("name")
 public class Area {
     private final ArrayList<LngLat> cornerPoints;
 
     /**
-     * Represents an area enclosed by boundary points on the map
+     * Creates an area enclosed by boundary points on the map
      * @param cornerPoints a list of LngLats representing the boundary points
      */
     // intended for use with central area
@@ -19,7 +22,7 @@ public class Area {
     }
 
     /**
-     * Represents an area enclosed by boundary points on the map
+     * Creates an area enclosed by boundary points on the map
      * @param coordinates a 2D array of doubles, each sub-array representing one boundary point
      */
     // intended for use with no fly zones
@@ -46,10 +49,10 @@ public class Area {
                 var xCoordIntersect = currPt.lng() + ((prevPt.lng() - currPt.lng()) * (point.lat() - currPt.lat()) / (prevPt.lat() - currPt.lat()));
                 if (point.lng() < xCoordIntersect) {
                     odd = !odd;
-                    System.out.println(prevPt + " " + currPt);
-                    System.out.println((prevPt.lng() - currPt.lng()) * (point.lat() - currPt.lat()) /
-                            (prevPt.lat() - currPt.lat()) + currPt.lng());
-                    System.out.println(point.lng());
+//                    System.out.println(prevPt + " " + currPt);
+//                    System.out.println((prevPt.lng() - currPt.lng()) * (point.lat() - currPt.lat()) /
+//                            (prevPt.lat() - currPt.lat()) + currPt.lng());
+//                    System.out.println(point.lng());
                 }
             }
 
@@ -124,11 +127,61 @@ public class Area {
             // p2, q2 and q1 are collinear and q1 lies on segment p2q2
             //if (o4 == 0 && onSegment(p2, q2, q1)) return true;
 
-            if (o1 == 0 && onSegment(lineStart, lineEnd, edgeStart)) return true;
-            if (o2 == 0 && onSegment(lineStart, lineEnd, edgeEnd)) return true;
-            if (o3 == 0 && onSegment(edgeStart, edgeEnd, lineStart)) return true;
-            if (o4 == 0 && onSegment(edgeStart, edgeEnd, lineEnd)) return true;
+//            if (o1 == 0 && onSegment(lineStart, lineEnd, edgeStart)) return true;
+//            if (o2 == 0 && onSegment(lineStart, lineEnd, edgeEnd)) return true;
+//            if (o3 == 0 && onSegment(edgeStart, edgeEnd, lineStart)) return true;
+//            if (o4 == 0 && onSegment(edgeStart, edgeEnd, lineEnd)) return true;
             edgeStart = edgeEnd;
+        }
+        return false;
+    }
+
+    public boolean altLineIntersectsArea(LngLat moveStart, LngLat moveEnd) {
+        var moveGradient = (moveEnd.lat() - moveStart.lat()) / (moveEnd.lng() - moveStart.lng());
+        LngLat edgeStart = cornerPoints.get(cornerPoints.size() - 1);
+
+        for (LngLat edgeEnd : cornerPoints) {
+            var edgeGradient = (edgeEnd.lat() - edgeStart.lat()) / (edgeEnd.lng() - edgeStart.lng());
+            if (moveGradient == 0 && edgeGradient == 0) {
+                if (moveStart.lat() == edgeStart.lat()) {
+                    return ((moveStart.lng() > edgeStart.lng()) != (moveStart.lng() > edgeEnd.lng()) || (moveEnd.lng() > edgeStart.lng()) != (moveEnd.lng() > edgeEnd.lng()));
+                }
+                else return false;
+            }
+            else if (Double.isInfinite(moveGradient) && Double.isInfinite(edgeGradient)) {
+                if (moveStart.lng() == edgeStart.lng()) {
+                    return ((moveStart.lat() >= edgeStart.lat()) != (moveStart.lat() >= edgeEnd.lat()) || (moveEnd.lat() >= edgeStart.lat()) != (moveEnd.lat() >= edgeEnd.lat()));
+                }
+                else return false;
+            }
+            else if (Double.isInfinite(edgeGradient) && Double.isFinite(moveGradient)) {
+                double intercept;
+                if (moveGradient == 0)  intercept = moveStart.lng();
+                else intercept = moveStart.lat() - (moveGradient * moveStart.lng());
+
+                var yCoordIntersect = (edgeStart.lng() * moveGradient) + intercept;
+
+                if ((yCoordIntersect >= edgeStart.lat()) != (yCoordIntersect >= edgeEnd.lat())) {
+                    return ((moveStart.lat() >= edgeStart.lat()) != (moveStart.lat() >= edgeEnd.lat()) || (moveEnd.lat() >= edgeStart.lat()) != (moveEnd.lat() >= edgeEnd.lat()));
+                }
+                else return false;
+            }
+            else if (Double.isFinite(edgeGradient) && Double.isInfinite(moveGradient)) {
+                double intercept;
+                if (edgeGradient == 0)  intercept = edgeStart.lng();
+                else intercept = edgeStart.lat() - (edgeGradient * edgeStart.lng());
+
+                var yCoordIntersect = (moveStart.lng() * edgeGradient) + intercept;
+
+                if ((yCoordIntersect >= moveStart.lat()) != (yCoordIntersect >= moveEnd.lat())) {
+                    return ((edgeStart.lat() >= moveStart.lat()) != (edgeStart.lat() >= moveEnd.lat()) || (edgeEnd.lat() >= moveStart.lat()) != (edgeEnd.lat() >= moveEnd.lat()));
+                }
+                else return false;
+            }
+            else if (edgeGradient == 0 && moveGradient > 0) {
+
+            }
+
         }
         return false;
     }
