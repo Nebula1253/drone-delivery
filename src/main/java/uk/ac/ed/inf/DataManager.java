@@ -13,14 +13,16 @@ import java.net.URL;
 import java.util.ArrayList;
 
 /**
- * Utility class used for retrieving data from a provided URL
+ * Utility class used internally for retrieving data from a provided URL, and writing data to JSON and GeoJSON files
  */
 public final class DataManager {
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static String baseURL = "https://ilp-rest.azurewebsites.net/";
     private static final String BASE_FILE_PATH = "./resultfiles/";
 
-    private DataManager() {}
+    private DataManager() {
+        new File(BASE_FILE_PATH).mkdir();
+    }
 
     /**
      * Utility method for retrieving data from REST servers
@@ -54,13 +56,12 @@ public final class DataManager {
     }
 
     /**
-     *
+     * Converts the provided object into a JSON record (or a list of records) and writes it to a file
      * @param filename
      * @param object
      */
     public static void writeToJSONFile(String filename, Object object) {
         try {
-            new File(BASE_FILE_PATH).mkdir();
             MAPPER.writeValue(new File(BASE_FILE_PATH + filename), object);
         }
         catch (IOException e) {
@@ -81,7 +82,6 @@ public final class DataManager {
 
         String jsonString = FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(geoJsonPoints))).toJson();
         try {
-            new File(BASE_FILE_PATH).mkdir();
             BufferedWriter writer = new BufferedWriter(new FileWriter(BASE_FILE_PATH + filename));
             writer.write(jsonString);
             writer.close();

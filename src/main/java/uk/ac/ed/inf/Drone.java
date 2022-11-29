@@ -11,30 +11,15 @@ public class Drone {
     //private final String orderDate;
     private String orderNo;
     private final ArrayList<DroneMove> moveLog = new ArrayList<>();
+    private final ArrayList<LngLat> flightPath = new ArrayList<>();
 
     public Drone() {
-        int nrValidOrders = 0;
-        for (Order order : App.ordersForThisDay) {
-            if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) {
-                nrValidOrders++;
-            }
-        }
-        System.out.println(nrValidOrders);
-
-        // because of the default value of the order location (i.e. the value that all invalid orders will have)
-        // being entirely outside Edinburgh, the distance from Appleton is obviously higher for those orders
-        // therefore, valid orders are guaranteed to be at the start of this list
-        //App.ordersForThisDay.sort(Comparator.comparingDouble(o -> o.getDeliveryLocation().distanceTo(APPLETON_TOWER)));
-
-        // since the app is only run once per day anyway,
-        //this.orderDate = App.ordersForThisDay.get(0).getOrderDate();
     }
 
     /**
      * Makes the drone begin to deliver orders, outputs to files after execution
      */
     public void deliverOrders() {
-        ArrayList<LngLat> flightPath = new ArrayList<>();
         flightPath.add(App.APPLETON_TOWER);
 
         ArrayList<LngLat> currentOrderFlightPath;
@@ -52,6 +37,8 @@ public class Drone {
             // path from Appleton to restaurant and back is calculated before "execution"
             currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
             currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
+//            currentOrderFlightPath = A_star(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
+            //currentOrderFlightPath.addAll(A_star(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
 
             // checks if the drone actually has the moves left to complete this order, breaks otherwise
             if (nrMoves >= currentOrderFlightPath.size()) {
@@ -66,8 +53,12 @@ public class Drone {
                 ordersDelivered++;
             }
             else {
-                for (int i = 1; i < currentOrderFlightPath.size(); i++) {
-                    moveLog.remove(moveLog.size() - i);
+                // because the flight path is calculated before "execution", the moves are added before we know if the drone can fly them or not
+                // in the case where the moves for the next order are added to moveLog, but the drone can't fulfill those moves, we need to remove them from the log
+                int removed = 0;
+                while (removed < currentOrderFlightPath.size()) {
+                    moveLog.remove(moveLog.size() - 1);
+                    removed++;
                 }
                 break;
             }
@@ -77,6 +68,7 @@ public class Drone {
         DataManager.writeToJSONFile("flightpath-" + App.orderDate + ".json", moveLog);
 
         System.out.println(ordersDelivered);
+        // the flight path size should be one greater than the move log size, because it starts with AT whereas the move log starts with the first actual move
         System.out.println(flightPath.size() + " " + moveLog.size());
     }
 
@@ -155,7 +147,7 @@ public class Drone {
 
             // initialising distance and direction values
             var minDistanceFromGoal = Double.POSITIVE_INFINITY;
-            CompassDirection bestDir = null;
+            CompassDirection bestDir = CompassDirection.EAST;
 
             // iterates through all directions, trying to find the one that takes us closest to our goal
             for (CompassDirection dir : CompassDirection.values()) {
@@ -180,8 +172,6 @@ public class Drone {
                     bestDir = dir;
                 }
             }
-//            System.out.println(bestDir);
-//            System.out.println(current);
 
             // the best next position calculated
             var nextPos = current.nextPosition(bestDir);
@@ -193,7 +183,7 @@ public class Drone {
                     Math.toRadians(bestDir.ordinal() * (360f / CompassDirection.values().length)),
                     nextPos.lng(), nextPos.lat(), ticksSinceStartOfCalculation));
 
-            // if we weren't in the central area and will now be in it, set the flag so we know to exclude paths outside the central area
+            // if we weren't in the central area and will now be in it, set the flag so that we know to exclude paths outside the central area
             if (!App.CENTRAL_AREA.pointInArea(current) && App.CENTRAL_AREA.pointInArea(nextPos)) reenteredCentralArea = true;
 
             // logs position
@@ -202,6 +192,7 @@ public class Drone {
         }
 
         // hover move once we've reached destination
+        flightPath.add(current);
         ticksSinceStartOfCalculation++;
         moveLog.add(new DroneMove(orderNo, current.lng(), current.lat(),
                 null, current.lng(), current.lat(), ticksSinceStartOfCalculation));

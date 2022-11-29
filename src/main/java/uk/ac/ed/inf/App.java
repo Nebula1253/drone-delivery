@@ -18,6 +18,16 @@ public class App
         orderDate = args[0];
         DataManager.setBaseURL(args[1]);
         ordersForThisDay = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
+        if (ordersForThisDay == null) System.err.println("Unable to retrieve orders");
+
+        int nrValidOrders = 0;
+        for (Order order : ordersForThisDay) {
+            if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) {
+                nrValidOrders++;
+            }
+        }
+        System.out.println(nrValidOrders);
+
         CENTRAL_AREA = new Area(DataManager.retrieveDataFromURL("centralArea", new TypeReference<ArrayList<LngLat>>(){}));
         NO_FLY_ZONES = DataManager.retrieveDataFromURL("noFlyZones", new TypeReference<>(){});
 
