@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 
+/**
+ * The main class of the drone service application, all code is executed from here and program-wide constants are defined here
+ */
 public class App 
 {
     /** The central area of campus, as defined on the REST server*/
@@ -26,21 +29,17 @@ public class App
     public static Restaurant[] restaurants;
 
 
+    /**
+     * The main method, from which all other code is executed
+     * @param args The command line arguments: the first argument is the desired date for which to deliver orders, the second is the server base URL,
+     *             and the third is a seed for random-number-generation (unused in this implementation)
+     */
     public static void main(String[] args) {
         orderDate = args[0];
         DataManager.setBaseURL(args[1]);
 
         restaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
-        ordersForThisDay = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
-        if (ordersForThisDay == null) throw new RuntimeException("Unable to retrieve orders from server");
-
-        int nrValidOrders = 0;
-        for (Order order : ordersForThisDay) {
-            if (order.getOutcome() == OrderOutcome.ValidButNotDelivered) {
-                nrValidOrders++;
-            }
-        }
-        System.out.println(nrValidOrders);
+        if (restaurants == null) throw new RuntimeException("Unable to retrieve restaurants from server");
 
         var centralAreaCornerPoints = DataManager.retrieveDataFromURL("centralArea", new TypeReference<ArrayList<LngLat>>(){});
         if (centralAreaCornerPoints == null) throw new RuntimeException("Unable to retrieve central area from server");
@@ -48,6 +47,17 @@ public class App
 
         noFlyZones = DataManager.retrieveDataFromURL("noFlyZones", new TypeReference<>(){});
         if (noFlyZones == null) throw new RuntimeException("Unable to retrieve no-fly zones from server");
+
+        ordersForThisDay = DataManager.retrieveDataFromURL("orders/" + orderDate, new TypeReference<>(){});
+        if (ordersForThisDay == null) throw new RuntimeException("Unable to retrieve orders from server");
+
+        int nrValidOrders = 0;
+        for (Order order : ordersForThisDay) {
+            if (order.getOutcome() == OrderOutcome.VALID_BUT_NOT_DELIVERED) {
+                nrValidOrders++;
+            }
+        }
+        System.out.println(nrValidOrders);
 
         // because of the default value of the order location (i.e. the value that all invalid orders will have)
         // being entirely outside Edinburgh, the distance from Appleton is obviously higher for those orders

@@ -8,13 +8,10 @@ import java.util.*;
 public class Drone {
     private int nrMoves = 2000;
     private int ticksSinceStartOfCalculation = 0;
-    //private final String orderDate;
-    private String orderNo;
     private final ArrayList<DroneMove> moveLog = new ArrayList<>();
     private final ArrayList<LngLat> flightPath = new ArrayList<>();
 
-    public Drone() {
-    }
+    public Drone() {}
 
     /**
      * Makes the drone begin to deliver orders, outputs to files after execution
@@ -23,22 +20,22 @@ public class Drone {
         flightPath.add(App.APPLETON_TOWER);
 
         ArrayList<LngLat> currentOrderFlightPath;
+        String orderNo;
+        Order currentOrd;
         int ordersDelivered = 0;
 
         while (nrMoves >= 0)  {
             // moves required for this specific order, for the drone to fly to restaurant and back to Appleton
-            Order currentOrd = App.ordersForThisDay.get(ordersDelivered);
-            if (currentOrd.getOutcome() != OrderOutcome.ValidButNotDelivered) {
-                if (currentOrd.getOutcome() == OrderOutcome.Delivered) continue;
+            currentOrd = App.ordersForThisDay.get(ordersDelivered);
+            if (currentOrd.getOutcome() != OrderOutcome.VALID_BUT_NOT_DELIVERED) {
+                if (currentOrd.getOutcome() == OrderOutcome.DELIVERED) continue;
                 else break;
             }
-            this.orderNo = currentOrd.getOrderNo();
+            orderNo = currentOrd.getOrderNo();
 
             // path from Appleton to restaurant and back is calculated before "execution"
-            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getPickupLocation());
-            currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
-//            currentOrderFlightPath = A_star(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
-            //currentOrderFlightPath.addAll(A_star(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
+            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getPickupLocation(), orderNo);
+            currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER, orderNo));
 
             // checks if the drone actually has the moves left to complete this order, breaks otherwise
             if (nrMoves >= currentOrderFlightPath.size()) {
@@ -72,63 +69,8 @@ public class Drone {
         System.out.println(flightPath.size() + " " + moveLog.size());
     }
 
-    private ArrayList<LngLat> A_star(LngLat start, LngLat goal) {
-        // heuristic function is distanceTo divided by move length, rounded
-        HashMap<LngLat, LngLat> cameFrom = new HashMap<>();
-
-        HashMap<LngLat, Integer> gScore = new HashMap<>();
-        gScore.put(start, 0);
-
-        HashMap<LngLat, Integer> fScore = new HashMap<>();
-        fScore.put(start, (int) Math.ceil(start.distanceTo(goal) / LngLat.DIST_TOLERANCE));
-
-        PriorityQueue<LngLat> openSet = new PriorityQueue<>((first, second) -> {
-            Integer firstFScore = fScore.get(first);
-            Integer secondFScore = fScore.get(second);
-
-            if (firstFScore == null) { firstFScore = Integer.MAX_VALUE; }
-            if (secondFScore == null) { secondFScore = Integer.MAX_VALUE; }
-
-            return secondFScore.compareTo(firstFScore);
-        });
-        openSet.add(start);
-
-        while (!openSet.isEmpty()) {
-            LngLat current = openSet.remove();
-            if (current.equals(goal)) {
-                return reconstructPath(cameFrom, current);
-            }
-
-            for (CompassDirection dir : CompassDirection.values()) {
-                LngLat neighbour = current.nextPosition(dir);
-
-                int tentativeGScore = gScore.get(current) + 1;
-                int comparisonGScore = gScore.getOrDefault(neighbour, Integer.MAX_VALUE);
-
-                if (tentativeGScore < comparisonGScore) {
-                    cameFrom.put(neighbour, current);
-                    gScore.put(neighbour, tentativeGScore);
-                    fScore.put(neighbour, tentativeGScore + (int) Math.ceil(neighbour.distanceTo(goal) / LngLat.DIST_TOLERANCE));
-                    if (!openSet.contains(neighbour)) {
-                        openSet.add(neighbour);
-                    }
-                }
-            }
-        }
-        return new ArrayList<>();
-    }
-
-    private ArrayList<LngLat> reconstructPath(HashMap<LngLat, LngLat> cameFrom, LngLat current) {
-        ArrayList<LngLat> totalPath = new ArrayList<>();
-        while (cameFrom.containsKey(current)) {
-            current = cameFrom.get(current);
-            totalPath.add(0, current);
-        }
-        return totalPath;
-    }
-
     // Greedy pathfinding algorithm for drone flight, returns a list of coordinates (LngLats) representing the positions of the drone through the path
-    private ArrayList<LngLat> greedy(LngLat start, LngLat goal) {
+    private ArrayList<LngLat> greedy(LngLat start, LngLat goal, String orderNo) {
         LngLat current = start;
         ArrayList<LngLat> flightPath = new ArrayList<>();
 

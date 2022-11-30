@@ -15,7 +15,7 @@ public record LngLat(
         @JsonProperty("latitude")
         double lat) {
     // constant representing minimum distance value
-    public static final double DIST_TOLERANCE = 0.00015;
+    private static final double DIST_TOLERANCE = 0.00015;
 
     /**
      * Determines the distance between two locations
@@ -28,7 +28,7 @@ public record LngLat(
     }
 
     /**
-     * Determines whether one location is close to another (i.e. the distance is below a specified tolerance)
+     * Determines whether one location is close to another (the distance is below a specified tolerance)
      * @param other The point which is checked for closeness
      * @return A boolean representing whether the points are close or not
      */
@@ -51,5 +51,10 @@ public record LngLat(
         double yChange = Math.sin(angle) * DIST_TOLERANCE;
         double xChange = Math.cos(angle) * DIST_TOLERANCE;
         return new LngLat(this.lng + xChange, this.lat + yChange);
+    }
+
+    // does exactly what it says on the tin, so what's the point of writing doc for it
+    public boolean equals(LngLat other) {
+        return this.lng == other.lng && this.lat == other.lat;
     }
 }

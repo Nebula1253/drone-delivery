@@ -17,7 +17,8 @@ import java.util.ArrayList;
  */
 public final class DataManager {
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-    private static String baseURL = "https://ilp-rest.azurewebsites.net/";
+    private static final String DEFAULT_URL = "https://ilp-rest.azurewebsites.net/";
+    private static String baseURL = DEFAULT_URL;
     private static final String BASE_FILE_PATH = "./resultfiles/";
 
     private DataManager() {
@@ -39,8 +40,8 @@ public final class DataManager {
             return MAPPER.readValue(new URL(baseURL + endpointName), typeRef);
         }
         catch(IOException e) {
-            //System.err.println(baseURL + endpointName + " is an invalid URL");
-            System.err.println(e.getMessage());
+            System.err.println("Error retrieving data from " + baseURL + endpointName);
+            //System.err.println(e.getMessage());
         }
         return null;
     }
