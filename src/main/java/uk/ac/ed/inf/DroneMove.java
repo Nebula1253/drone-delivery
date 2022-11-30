@@ -1,5 +1,7 @@
 package uk.ac.ed.inf;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Records one flight move performed by the drone
  * @param orderNo The eight-character order number for the pizza order which the drone is currently collecting or delivering
@@ -10,7 +12,9 @@ package uk.ac.ed.inf;
  * @param toLatitude The latitude of the drone at the end of this move
  * @param ticksSinceStartOfCalculation The elapsed ticks since the computation started for the day
  */
-// pretty much exclusively intended for serialisation into the "flightpath" result files, absolutely useless outside that
 public record DroneMove(String orderNo, double fromLongitude, double fromLatitude, Double angle,
                         double toLongitude, double toLatitude, int ticksSinceStartOfCalculation) {
+
+    @JsonIgnore
+    public LngLat getEndLocation() { return new LngLat(toLongitude, toLatitude); }
 }

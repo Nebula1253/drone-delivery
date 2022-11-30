@@ -9,7 +9,7 @@ public class Drone {
     private int nrMoves = 2000;
     private int ticksSinceStartOfCalculation = 0;
     private final ArrayList<DroneMove> moveLog = new ArrayList<>();
-    private final ArrayList<LngLat> flightPath = new ArrayList<>();
+    private final ArrayList<LngLat> positionLog = new ArrayList<>();
 
     public Drone() {}
 
@@ -17,9 +17,9 @@ public class Drone {
      * Makes the drone begin to deliver orders, outputs to files after execution
      */
     public void deliverOrders() {
-        flightPath.add(App.APPLETON_TOWER);
+        positionLog.add(App.APPLETON_TOWER);
 
-        ArrayList<LngLat> currentOrderFlightPath;
+        ArrayList<DroneMove> currentOrderFlightPath;
         String orderNo;
         Order currentOrd;
         int ordersDelivered = 0;
@@ -34,8 +34,28 @@ public class Drone {
             orderNo = currentOrd.getOrderNo();
 
             // path from Appleton to restaurant and back is calculated before "execution"
-            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getPickupLocation(), orderNo);
-            currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER, orderNo));
+            currentOrderFlightPath = greedy(positionLog.get(positionLog.size() - 1) , currentOrd.getPickupLocation(), orderNo);
+
+            // reversing the path we've already got is way more efficient than calling the pathfinder twice
+            ArrayList<DroneMove> reversedPath = new ArrayList<>();
+            DroneMove move = currentOrderFlightPath.get(0);
+
+            for (int i = currentOrderFlightPath.size() - 2; i >= 0; i--) {
+                move = currentOrderFlightPath.get(i);
+
+                // ensure the angle value is accurate; needs to be in the opposite direction of whatever the original was
+                double reversedAngle;
+                if (move.angle() >= Math.PI) reversedAngle = move.angle() - Math.PI;
+                else reversedAngle = move.angle() + Math.PI;
+
+                // to obey the "strictly increasing" constraint on the ticks field
+                ticksSinceStartOfCalculation++;
+                reversedPath.add(new DroneMove(orderNo, move.toLongitude(), move.toLatitude(), reversedAngle,
+                        move.fromLongitude(), move.fromLatitude(), ticksSinceStartOfCalculation));
+            }
+            ticksSinceStartOfCalculation++;
+            reversedPath.add(new DroneMove(orderNo, move.fromLongitude(), move.fromLatitude(), null, move.fromLongitude(), move.fromLatitude(), ticksSinceStartOfCalculation));
+            currentOrderFlightPath.addAll(reversedPath);
 
             // checks if the drone actually has the moves left to complete this order, breaks otherwise
             if (nrMoves >= currentOrderFlightPath.size()) {
@@ -43,36 +63,30 @@ public class Drone {
                 nrMoves -= currentOrderFlightPath.size();
 
                 // add to flightPath: this means the drone has "executed" the calculated path
-                flightPath.addAll(currentOrderFlightPath);
+                moveLog.addAll(currentOrderFlightPath);
 
                 currentOrd.deliver();
 
                 ordersDelivered++;
             }
-            else {
-                // because the flight path is calculated before "execution", the moves are added before we know if the drone can fly them or not
-                // in the case where the moves for the next order are added to moveLog, but the drone can't fulfill those moves, we need to remove them from the log
-                int removed = 0;
-                while (removed < currentOrderFlightPath.size()) {
-                    moveLog.remove(moveLog.size() - 1);
-                    removed++;
-                }
-                break;
-            }
+            else break;
+        }
+        for (DroneMove move : moveLog) {
+            positionLog.add(move.getEndLocation());
         }
 
-        DataManager.writeToGeoJSONFile("drone-" + App.orderDate + ".geojson", flightPath);
+        DataManager.writeToGeoJSONFile("drone-" + App.orderDate + ".geojson", positionLog);
         DataManager.writeToJSONFile("flightpath-" + App.orderDate + ".json", moveLog);
 
         System.out.println(ordersDelivered);
         // the flight path size should be one greater than the move log size, because it starts with AT whereas the move log starts with the first actual move
-        System.out.println(flightPath.size() + " " + moveLog.size());
+        System.out.println(positionLog.size() + " " + moveLog.size());
     }
 
     // Greedy pathfinding algorithm for drone flight, returns a list of coordinates (LngLats) representing the positions of the drone through the path
-    private ArrayList<LngLat> greedy(LngLat start, LngLat goal, String orderNo) {
+    private ArrayList<DroneMove> greedy(LngLat start, LngLat goal, String orderNo) {
         LngLat current = start;
-        ArrayList<LngLat> flightPath = new ArrayList<>();
+        ArrayList<DroneMove> flightPath = new ArrayList<>();
 
         // flag to allow the algorithm to obey the constraint of "once you've re-entered the central area you can't exit it again"
         boolean reenteredCentralArea = false;
@@ -100,7 +114,7 @@ public class Drone {
                 }
                 // if the potential direction we're looking at takes us through a no-fly zone, or exits the central area once we've re-entered it,
                 // or we've already visited this point before, don't consider it
-                if (inNoFlyZone || (reenteredCentralArea && !App.centralArea.pointInArea(neighbour)) || flightPath.contains(neighbour)) continue;
+                if (inNoFlyZone || (reenteredCentralArea && !App.centralArea.pointInArea(neighbour))) continue;
 
                 // checks if this is the ideal direction
                 double distance = neighbour.distanceTo(goal);
@@ -116,22 +130,20 @@ public class Drone {
             // logs drone move
             var timeAtEndOfCalculation = (int) System.nanoTime() - timeAtStartOfCalculation;
             ticksSinceStartOfCalculation += timeAtEndOfCalculation;
-            moveLog.add(new DroneMove(orderNo, current.lng(), current.lat(),
-                    Math.toRadians(bestDir.ordinal() * (360f / CompassDirection.values().length)),
-                    nextPos.lng(), nextPos.lat(), ticksSinceStartOfCalculation));
 
             // if we weren't in the central area and will now be in it, set the flag so that we know to exclude paths outside the central area
             if (!App.centralArea.pointInArea(current) && App.centralArea.pointInArea(nextPos)) reenteredCentralArea = true;
 
             // logs position
+            flightPath.add(new DroneMove(orderNo, current.lng(), current.lat(),
+                    Math.toRadians(bestDir.ordinal() * (360f / CompassDirection.values().length)),
+                    nextPos.lng(), nextPos.lat(), ticksSinceStartOfCalculation));
             current = nextPos;
-            flightPath.add(current);
         }
 
         // hover move once we've reached destination
-        flightPath.add(current);
         ticksSinceStartOfCalculation++;
-        moveLog.add(new DroneMove(orderNo, current.lng(), current.lat(),
+        flightPath.add(new DroneMove(orderNo, current.lng(), current.lat(),
                 null, current.lng(), current.lat(), ticksSinceStartOfCalculation));
 
         return flightPath;
