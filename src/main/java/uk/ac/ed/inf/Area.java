@@ -14,7 +14,7 @@ public class Area {
 
     /**
      * Creates an area enclosed by boundary points on the map
-     * @param cornerPoints a list of LngLats representing the boundary points
+     * @param cornerPoints a list of the boundary points
      */
     // intended for use with central area
     public Area(ArrayList<LngLat> cornerPoints) {
@@ -23,7 +23,7 @@ public class Area {
 
     /**
      * Creates an area enclosed by boundary points on the map
-     * @param coordinates a 2D array of doubles, each sub-array representing one boundary point
+     * @param coordinates a 2D array of lat-long coordinates, each sub-array representing one boundary point
      */
     // intended for use with no-fly zones
     @ConstructorProperties("coordinates")
@@ -35,7 +35,7 @@ public class Area {
     }
 
     /**
-     * Checks whether a given point, represented by latitude and longitude coordinates, is within this area
+     * Checks whether a given point, with its latitude and longitude coordinates, is within this area
      * @param point the point being checked
      * @return True if the point is inside, False otherwise
      */
@@ -62,13 +62,8 @@ public class Area {
         return odd;
     }
 
-    /**
-     * Checks whether the orientation of an ordered triplet of points is clockwise or counterclockwise
-     * @param a The first point in the triplet
-     * @param b The second point in the triplet
-     * @param c The third point in the triplet
-     * @return 0 if the points are collinear, 1 if the points are clockwise, 2 if the points are counterclockwise
-     */
+    // Checks whether the orientation of an ordered triplet of points is clockwise or counterclockwise
+    // Returns 0 if the points are collinear, 1 if the points are clockwise, 2 if the points are counterclockwise
     private int orientation(LngLat a, LngLat b, LngLat c) {
         var val = (b.lat() - a.lat()) * (c.lng() - b.lng()) - (b.lng() - a.lng()) * (c.lat() - b.lat());
         if (val == 0) return 0;
@@ -79,7 +74,7 @@ public class Area {
      * Checks if a straight line, represented by two points, intersects the boundaries of this area
      * @param lineStart the start point of the line
      * @param lineEnd the end point of the line
-     * @return True if the
+     * @return True if the line intersects the boundaries, False otherwise
      */
     public boolean lineIntersectsArea(LngLat lineStart, LngLat lineEnd) {
         // taken from geeksforgeeks.com

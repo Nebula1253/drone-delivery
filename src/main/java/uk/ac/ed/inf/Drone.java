@@ -35,7 +35,7 @@ public class Drone {
             this.orderNo = currentOrd.getOrderNo();
 
             // path from Appleton to restaurant and back is calculated before "execution"
-            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
+            currentOrderFlightPath = greedy(flightPath.get(flightPath.size() - 1) , currentOrd.getPickupLocation());
             currentOrderFlightPath.addAll(greedy(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
 //            currentOrderFlightPath = A_star(flightPath.get(flightPath.size() - 1) , currentOrd.getDeliveryLocation());
             //currentOrderFlightPath.addAll(A_star(currentOrderFlightPath.get(currentOrderFlightPath.size() -1), App.APPLETON_TOWER));
@@ -127,12 +127,7 @@ public class Drone {
         return totalPath;
     }
 
-    /**
-     * Greedy pathfinding algorithm for drone flight
-     * @param start LngLat representing the start point of the drone
-     * @param goal LngLat representing the end point of the drone
-     * @return a list of coordinates (LngLats) representing the positions of the drone through the path
-     */
+    // Greedy pathfinding algorithm for drone flight, returns a list of coordinates (LngLats) representing the positions of the drone through the path
     private ArrayList<LngLat> greedy(LngLat start, LngLat goal) {
         LngLat current = start;
         ArrayList<LngLat> flightPath = new ArrayList<>();
@@ -155,7 +150,7 @@ public class Drone {
                 boolean inNoFlyZone = false;
 
                 // checks if moving to this point takes us through any of the no-fly zones
-                for (Area zone : App.NO_FLY_ZONES) {
+                for (Area zone : App.noFlyZones) {
                     if (zone.pointInArea(neighbour) || zone.lineIntersectsArea(current, neighbour)) {
                         inNoFlyZone = true;
                         break;
@@ -163,7 +158,7 @@ public class Drone {
                 }
                 // if the potential direction we're looking at takes us through a no-fly zone, or exits the central area once we've re-entered it,
                 // or we've already visited this point before, don't consider it
-                if (inNoFlyZone || (reenteredCentralArea && !App.CENTRAL_AREA.pointInArea(neighbour)) || flightPath.contains(neighbour)) continue;
+                if (inNoFlyZone || (reenteredCentralArea && !App.centralArea.pointInArea(neighbour)) || flightPath.contains(neighbour)) continue;
 
                 // checks if this is the ideal direction
                 double distance = neighbour.distanceTo(goal);
@@ -184,7 +179,7 @@ public class Drone {
                     nextPos.lng(), nextPos.lat(), ticksSinceStartOfCalculation));
 
             // if we weren't in the central area and will now be in it, set the flag so that we know to exclude paths outside the central area
-            if (!App.CENTRAL_AREA.pointInArea(current) && App.CENTRAL_AREA.pointInArea(nextPos)) reenteredCentralArea = true;
+            if (!App.centralArea.pointInArea(current) && App.centralArea.pointInArea(nextPos)) reenteredCentralArea = true;
 
             // logs position
             current = nextPos;

@@ -2,7 +2,6 @@ package uk.ac.ed.inf;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -21,13 +20,11 @@ public class Order {
 
     // this is only set to the restaurant's location once the orderItems validation is done, so I need a default value
     @JsonIgnore
-    private LngLat deliveryLocation = new LngLat(19.0760, 72.8777);
+    private LngLat pickupLocation = new LngLat(19.0760, 72.8777);
 
     // constant value representing delivery fee
     @JsonIgnore
     private static final int DELIVERY_FEE = 100;
-
-    private static final Restaurant[] allRestaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
 
     /**
      * Represents the information of an order placed with the drone delivery service
@@ -56,35 +53,72 @@ public class Order {
         validate();
     }
 
+    // Checks all the order details
     private void validate() {
-        validateExpiryDate();
         validateCVV();
+        validateExpiryDate();
         validateCreditCardNumber();
         validateOrderItems();
     }
 
-    private void validateExpiryDate() {
-        // Expiry date is invalid if: a) it's in the past, b) it's not in the "mm/yy" pattern
-        try {
-            // the expiry date always refers to the very last day of the month, so the object is adjusted accordingly
-            LocalDate expiryDate = LocalDate.parse("01/" + this.creditCardExpiry, DateTimeFormatter.ofPattern("dd/MM/yy"))
-                    .with(TemporalAdjusters.lastDayOfMonth());
-            LocalDate orderDate = LocalDate.parse(this.orderDate, DateTimeFormatter.ISO_LOCAL_DATE);
+    // Checks if the CVV provided for the payment card is valid; if it isn't, changes the order outcome accordingly
+    private void validateCVV() {
+        // The CVV is invalid if it's longer than 3 characters or if it contains non-numeric characters
+        if (!this.cvv.matches("^[0-9]{3}$")) { this.outcome = OrderOutcome.InvalidCvv; }
+    }
 
-            if (expiryDate.isBefore(orderDate)) {
-                this.outcome = OrderOutcome.InvalidExpiryDate;
+    // Checks if the expiry date of the payment card provided is before the order date; if the card has expired, changes the order outcome accordingly
+    private void validateExpiryDate() {
+        if (this.outcome == OrderOutcome.ValidButNotDelivered) {
+            // Expiry date is invalid if: a) it's in the past, b) it's not in the "mm/yy" pattern
+            try {
+                // the expiry date always refers to the very last day of the month, so the object is adjusted accordingly
+                LocalDate expiryDate = LocalDate.parse("01/" + this.creditCardExpiry, DateTimeFormatter.ofPattern("dd/MM/yy"))
+                        .with(TemporalAdjusters.lastDayOfMonth());
+                LocalDate orderDate = LocalDate.parse(this.orderDate, DateTimeFormatter.ISO_LOCAL_DATE);
+
+                if (expiryDate.isBefore(orderDate)) {
+                    this.outcome = OrderOutcome.InvalidExpiryDate;
+                }
+            }
+            catch(Exception e) { this.outcome = OrderOutcome.InvalidExpiryDate; }
+        }
+    }
+
+    // Checks if the payment card number is valid (i.e. is the correct length, is either a Visa or a MasterCard, and passes the Luhn's algorithm check)
+    private void validateCreditCardNumber(){
+        if (outcome == OrderOutcome.ValidButNotDelivered) {
+            String[] creditCardDigits = this.creditCardNumber.split("");
+            if (this.creditCardNumber.length() == 16 && // Standard credit card number length
+                    (this.creditCardNumber.matches("^4[0-9]*$") || // Visa prefix
+                    (this.creditCardNumber.matches("^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)[0-9]*$")))) // Mastercard prefix
+            {
+                // credit card validation: Luhn's algorithm
+                int sumOfDigits = 0;
+                for (int i = creditCardDigits.length - 1; i >= 0; i--) {
+                    if ((creditCardDigits.length - i) % 2 == 0) {
+                        int doubledDigit = Integer.parseInt(creditCardDigits[i]) * 2;
+                        if (doubledDigit > 9) doubledDigit -= 9;
+                        sumOfDigits += doubledDigit;
+                    }
+                    else sumOfDigits += Integer.parseInt(creditCardDigits[i]);
+                }
+                if (sumOfDigits % 10 != 0) {
+                    this.outcome = OrderOutcome.InvalidCardNumber;
+                }
+            }
+            else {
+                this.outcome = OrderOutcome.InvalidCardNumber;
+                //System.out.println(creditCardNumber);
             }
         }
-        catch(Exception e) { this.outcome = OrderOutcome.InvalidExpiryDate; }
     }
 
-    private void validateCVV() {
-        if (outcome == OrderOutcome.ValidButNotDelivered) {
-            // The CVV is invalid if it's longer than 3 characters or if it contains non-numeric characters
-            if (!this.cvv.matches("^[0-9]{3}$")) { this.outcome = OrderOutcome.InvalidCvv; }
-        }
-    }
-
+    /*
+     * Checks if the items ordered are valid (i.e. all valid item names, all from the same restaurant), as well as if the total price provided is actually correct
+     * If these checks fail, sets the order outcome accordingky
+     * If these checks <b>succeed</b>, sets the pickup location of the order to the restaurant's location
+     */
     private void validateOrderItems() {
         if (outcome == OrderOutcome.ValidButNotDelivered) {
             LngLat restaurantLocation = new LngLat(0,0);
@@ -94,7 +128,7 @@ public class Order {
             int totalCost = DELIVERY_FEE;
             boolean restaurantFound = false;
 
-            for (Restaurant r : allRestaurants) {
+            for (Restaurant r : App.restaurants) {
                 currentMenu = r.menu();
 
                 // iterate through every single menu item in the current restaurant
@@ -131,77 +165,36 @@ public class Order {
                 return;
             }
 
-            if (this.outcome == OrderOutcome.ValidButNotDelivered) this.deliveryLocation = restaurantLocation;
-        }
-    }
-
-    private void validateCreditCardNumber(){
-        if (outcome == OrderOutcome.ValidButNotDelivered) {
-            String[] creditCardDigits = this.creditCardNumber.split("");
-            if (this.creditCardNumber.length() == 16 && // Standard credit card number length
-                    (this.creditCardNumber.matches("^4[0-9]*$") || // Visa prefix
-                    (this.creditCardNumber.matches("^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)[0-9]*$")))) // Mastercard prefix
-            {
-                // credit card validation: Luhn's algorithm
-                int sumOfDigits = 0;
-                for (int i = creditCardDigits.length - 1; i >= 0; i--) {
-                    if ((creditCardDigits.length - i) % 2 == 0) {
-                        int doubledDigit = Integer.parseInt(creditCardDigits[i]) * 2;
-                        if (doubledDigit > 9) doubledDigit -= 9;
-                        sumOfDigits += doubledDigit;
-                    }
-                    else sumOfDigits += Integer.parseInt(creditCardDigits[i]);
-                }
-                if (sumOfDigits % 10 != 0) {
-                    this.outcome = OrderOutcome.InvalidCardNumber;
-                }
-            }
-            else {
-                this.outcome = OrderOutcome.InvalidCardNumber;
-                //System.out.println(creditCardNumber);
-            }
+            if (this.outcome == OrderOutcome.ValidButNotDelivered) this.pickupLocation = restaurantLocation;
         }
     }
 
     /**
-     * Determines the cost of having order items delivered by drone, including the 1-pound delivery cost
+     * @return The location for the drone get the order items from
      */
-    public int getCostInPence() {
-        return this.priceTotalInPence + DELIVERY_FEE;
-    }
+    @JsonIgnore // because we don't want this written into the deliveries file
+    public LngLat getPickupLocation() { return pickupLocation; }
 
-    public OrderOutcome getOutcome() {
-        return outcome;
-    }
+    // getters used for JSON serialisation
 
-    public String getCreditCardExpiry() {
-        return creditCardExpiry;
-    }
+    /**
+     * @return The 8-character unique identifier for the order
+     */
+    public String getOrderNo() { return orderNo; }
 
-    public String getCreditCardNumber() {
-        return creditCardNumber;
-    }
+    /**
+     * @return The outcome of the order (delivered, valid but not delivered, invalid)
+     */
+    public OrderOutcome getOutcome() { return outcome; }
 
-    public String getOrderNo() {
-        return orderNo;
-    }
+    /**
+     * @return The total cost of the order, including the delivery fee
+     */
+    public int getCostInPence() { return this.priceTotalInPence + DELIVERY_FEE; }
 
-    public String getOrderDate() {
-        return orderDate;
-    }
-
-    public String getCustomer() {
-        return customer;
-    }
-
-    public String getCvv() {
-        return cvv;
-    }
-
-    public LngLat getDeliveryLocation() {
-        return deliveryLocation;
-    }
-
+    /**
+     * Sets the order outcome correctly once the drone has delivered the order to Appleton
+     */
     public void deliver() {
         outcome = OrderOutcome.Delivered;
     }

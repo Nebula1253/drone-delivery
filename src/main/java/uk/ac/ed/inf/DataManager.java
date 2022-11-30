@@ -21,7 +21,6 @@ public final class DataManager {
     private static final String BASE_FILE_PATH = "./resultfiles/";
 
     private DataManager() {
-        new File(BASE_FILE_PATH).mkdir();
     }
 
     /**
@@ -40,6 +39,7 @@ public final class DataManager {
             return MAPPER.readValue(new URL(baseURL + endpointName), typeRef);
         }
         catch(IOException e) {
+            //System.err.println(baseURL + endpointName + " is an invalid URL");
             System.err.println(e.getMessage());
         }
         return null;
@@ -57,15 +57,19 @@ public final class DataManager {
 
     /**
      * Converts the provided object into a JSON record (or a list of records) and writes it to a file
-     * @param filename
-     * @param object
+     * @param filename The name of the target file to be created / overwritten
+     * @param object The object to be serialised
      */
     public static void writeToJSONFile(String filename, Object object) {
+        if (!filename.matches("^.*\\.(json)$")) {
+            filename += ".json";
+        }
         try {
+            new File(BASE_FILE_PATH).mkdir();
             MAPPER.writeValue(new File(BASE_FILE_PATH + filename), object);
         }
         catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.err.println(BASE_FILE_PATH + filename + " is an invalid file path");
         }
     }
 
@@ -75,6 +79,10 @@ public final class DataManager {
      * @param points The list of LngLats to be converted
      */
     public static void writeToGeoJSONFile(String filename, ArrayList<LngLat> points) {
+        if (!filename.matches("^.*\\.(geojson)$")) {
+            filename += ".geojson";
+        }
+
         ArrayList<Point> geoJsonPoints = new ArrayList<>();
         for (LngLat point : points) {
             geoJsonPoints.add(Point.fromLngLat(point.lng(), point.lat()));
@@ -82,12 +90,13 @@ public final class DataManager {
 
         String jsonString = FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(geoJsonPoints))).toJson();
         try {
+            new File(BASE_FILE_PATH).mkdir();
             BufferedWriter writer = new BufferedWriter(new FileWriter(BASE_FILE_PATH + filename));
             writer.write(jsonString);
             writer.close();
         }
         catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.err.println(BASE_FILE_PATH + filename + " is an invalid file path");
         }
     }
 }
