@@ -7,5 +7,5 @@ package uk.ac.ed.inf;
  * @param latitude The latitude coordinate of the restaurant's location
  * @param menu A list of menu items the restaurant offers
  */
-public record Restaurant(String name, double longitude, double latitude, Menu[] menu) {
+public record Restaurant(String name, double longitude, double latitude, MenuItem[] menu) {
 }

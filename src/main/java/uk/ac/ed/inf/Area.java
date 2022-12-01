@@ -91,12 +91,4 @@ public class Area {
         }
         return false;
     }
-
-    /**
-     * Getter function for the vertices of this area
-     * @return the area's vertices
-     * */
-    public ArrayList<LngLat> getCornerPoints() {
-        return cornerPoints;
-    }
 }

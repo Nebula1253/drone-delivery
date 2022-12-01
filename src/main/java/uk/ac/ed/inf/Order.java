@@ -128,20 +128,20 @@ public class Order {
             LngLat restaurantLocation = new LngLat(0,0);
             int itemsRemaining = this.orderItems.size();
             if (itemsRemaining > 4) { this.outcome = OrderOutcome.INVALID_PIZZA_COUNT; return; }
-            Menu[] currentMenu;
+            MenuItem[] currentMenu;
             int totalCost = DELIVERY_FEE;
             boolean restaurantFound = false;
 
             // here for testing only, so that running OrderValidationTest is not dependent on the variable App.restaurants
             Restaurant[] restaurants;
             if (testing) restaurants = DataManager.retrieveDataFromURL("restaurants", new TypeReference<>(){});
-            else restaurants = App.restaurants;
+            else restaurants = App.getRestaurants();
 
             for (Restaurant r : restaurants) {
                 currentMenu = r.menu();
 
                 // iterate through every single menu item in the current restaurant
-                for (Menu m : currentMenu) {
+                for (MenuItem m : currentMenu) {
                     // if this item has been ordered, add cost and flag that the restaurant has been found
                     if (this.orderItems.contains(m.name())) {
                         totalCost += m.priceInPence();

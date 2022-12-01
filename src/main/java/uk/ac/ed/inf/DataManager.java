@@ -41,7 +41,6 @@ public final class DataManager {
         }
         catch(IOException e) {
             System.err.println("Error retrieving data from " + baseURL + endpointName);
-            //System.err.println(e.getMessage());
         }
         return null;
     }

@@ -1,6 +1,5 @@
 package uk.ac.ed.inf;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -8,11 +7,11 @@ import org.junit.jupiter.api.TestInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.testng.Assert.assertNotEquals;
 import static org.testng.AssertJUnit.assertEquals;
 
+
 public class OrderValidationTest {
-    private Order validOrderControl;
+    private final Order validOrderControl;
 
     OrderValidationTest(){
         Order.setTesting();
